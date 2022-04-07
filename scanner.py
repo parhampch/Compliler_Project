@@ -44,14 +44,18 @@ class Scanner:
     def run(self, input_path: str = 'input.txt') -> None:
         index = 0
         token = ""
-        program = "def main () :    a = 0**2;	# comment1\n    a = 2 + 2.5;    a = a - 3;    cde = a;    if (b /* commenمطالب طنزt2 */ == 3d) :        a = 3;        cd!e = 7;    else */    : 5/        b = a < cde; *$        cde = @2; if/    return; /* comment 3"
-        while index != len(program):
-            char = program[index]
+        # program = "def main () :    a = 0**2;	# comment1\n    a = 2 + 2.5;    a = a - 3;    cde = a;    if (b /* commenمطالب طنزt2 */ == 3d) :        a = 3;        cd!e = 7;    else */    : 5/        b = a < cde; *$        cde = @2; if/    return; /* comment 3"
+        program = open(input_path, 'r')
+        while True:
+            char = program.read(1)
+            if not char:
+                break
             # print(ord(char)) #to get ascii value
             state = self.dfa.next_state(char)
             token += char
             if (state.is_final):
                 if state.has_star:
+                    program.seek(program.tell() - 1)
                     index -= 1
                     token = token[0:-1]
                 if state != 11:
@@ -60,8 +64,6 @@ class Scanner:
                 token = ""
                 state = 0
             index += 1
-        pass
-        
 
 
 sc = Scanner()
