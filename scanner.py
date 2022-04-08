@@ -43,8 +43,6 @@ class Scanner:
                        20: Node(20, True, False, False), 21: Node(21, True, True, False), 22: Node(22, True, False, True), 23: Node(23, True, False, True),
                        24: Node(24, True, True, True)}
 
-        # self.invalid_char_regex = "[^\x09\x0A\x0B\x0C\x0D\x20\[\]\<;,:()+\-/\#=*\x1A0-9a-zA-Z.]"
-        # todo: add comma to other regexes as well
 
         self.valid_char_regex = "[\x09\x0A\x0B\x0C\x0D\x20\[\]\<;,:()+\-=*/\#\x1A0-9a-zA-Z.]"
         self.transition_function = {0: {"[0-9]": 1, "[a-zA-Z]": 5, "[\[\]\<;,:()+\-]": 7, "\*": 8, "=": 9,
@@ -88,79 +86,78 @@ class Scanner:
 
         self.dfa = DFA(self.states, self.transition_function, self.start_state, self.trash_state)
 
-    def run(self, input_path: str = 'input.txt') -> None:
-        token = ""
-        line_of_file = 1
-        is_start_of_line = True
-        has_error = False
-        file_ended = False
-        # program = "def main () :    a = 0**2;	# comment1\n    a = 2 + 2.5;    a = a - 3;    cde = a;    if (b /* commenمطالب طنزt2 */ == 3d) :        a = 3;        cd!e = 7;    else */    : 5/        b = a < cde; *$        cde = @2; if/    return; /* comment 3"
-        program = open(input_path, 'r')
-        tokens_file = open('tokens.txt', 'w')
-        errors_file = open('lexical_errors.txt', 'w')
-        symbol_table_file = open('symbol_table.txt', 'w')
-        while True:
-            char = program.read(1)
-            if not char:
-                file_ended = True
-                char = '\x1A'
-            # print(ord(char)) #to get ascii value
-            state = self.dfa.next_state(char)
-            if state.name == self.eof_state:
-                break
+    def get_next_token(self):
+        char = self.program.read(1)
+        if not char:
+            self.file_ended = True
+            char = '\x1A'
+        self.state = self.dfa.next_state(char)
+        if self.state.name == self.eof_state:
+            return "END" # way to communicate file end
 
-            token += char
-            if state.is_error:
-                has_error = True
-                if state.has_star:
-                    if not file_ended: program.seek(program.tell() - 1)
-                    token = token[0:-1]
-                errors_file.write("{}.\t({}, {})\n".format(line_of_file, token, self.errors[state.name]))
-                token = ""
-                continue
-            
-            
-            if state.is_final:
-                if state.has_star:
-                    if not file_ended: program.seek(program.tell() - 1)
-                    token = token[0:-1]
-                if state.name != 11 and state.name != 16:
-                    if is_start_of_line:
-                        is_start_of_line = False
-                        tokens_file.write("{}.\t".format(line_of_file))
-                    if state.name == 6:
-                        if token in self.key_words:
-                            tokens_file.write("({}, {}) ".format('KEYWORD', token))
-                        else:
-                            tokens_file.write("({}, {}) ".format('ID', token))
-                            for symbol in self.symbol_table.values():
-                                if token == symbol['lexeme']: break
-                            else: #if the token was not in file before, adds it.
-                                self.symbol_table[self.symbol_code] = {'lexeme': token}
-                                self.symbol_code += 1
+        self.token += char
+        if self.state.is_error:
+            self.has_error = True
+            if self.state.has_star:
+                if not self.file_ended: self.program.seek(self.program.tell() - 1)
+                self.token = self.token[0:-1]
+            self.errors_file.write(
+                "{}.\t({}, {})\n".format(self.line_of_file, self.token, self.errors[self.state.name]))
+            self.token = ""
+            return "CON" #continue
+
+        if self.state.is_final:
+            if self.state.has_star:
+                if not self.file_ended: self.program.seek(self.program.tell() - 1)
+                self.token = self.token[0:-1]
+            if self.state.name != 11 and self.state.name != 16:
+                if self.is_start_of_line:
+                    self.is_start_of_line = False
+                    self.tokens_file.write("{}.\t".format(self.line_of_file))
+                if self.state.name == 6:
+                    if self.token in self.key_words:
+                        self.tokens_file.write("({}, {}) ".format('KEYWORD', self.token))
                     else:
-                        tokens_file.write("({}, {}) ".format(self.classes[state.name], token))
-                if re.search("\x0A", token):
-                    line_of_file += 1
-                    tokens_file.write("\n")
-                    is_start_of_line = True
-                token = ""
-                state = 0
-        errors_file
-        if not has_error:
-            errors_file.write('There is no lexical error.')
-        
+                        self.tokens_file.write("({}, {}) ".format('ID', self.token))
+                        for symbol in self.symbol_table.values():
+                            if self.token == symbol['lexeme']: break
+                        else:  # if the token was not in file before, adds it.
+                            self.symbol_table[self.symbol_code] = {'lexeme': self.token}
+                            self.symbol_code += 1
+                else:
+                    self.tokens_file.write("({}, {}) ".format(self.classes[self.state.name], self.token))
+            if re.search("\x0A", self.token):
+                self.line_of_file += 1
+                self.tokens_file.write("\n")
+                self.is_start_of_line = True
+            self.token = ""
+            self.state = 0
+
+    def initialize(self, input_path: str = 'input.txt'):
+        self.token = ""
+        self.line_of_file = 1
+        self.is_start_of_line = True
+        self.has_error = False
+        self.file_ended = False
+        self.program = open(input_path, 'r')
+        self.tokens_file = open('tokens.txt', 'w')
+        self.errors_file = open('lexical_errors.txt', 'w')
+        self.symbol_table_file = open('symbol_table.txt', 'w')
+        pass
+
+    def close(self):
+        if not self.has_error:
+            self.errors_file.write('There is no lexical error.')
+
         for key in self.symbol_table.keys():
-            symbol_table_file.write("{}.\t{}\n".format(key, self.symbol_table[key]['lexeme']))
-        errors_file.close()
-        tokens_file.close()
-        symbol_table_file.close()
+            self.symbol_table_file.write("{}.\t{}\n".format(key, self.symbol_table[key]['lexeme']))
+        self.errors_file.close()
+        self.tokens_file.close()
+        self.symbol_table_file.close()
+        pass
 
 
-sc = Scanner()
-sc.run()
-
-#todo: implement get_next_token function
+#todo: implement get_next_token function [done]
 #todo: graceful termination/ no uncaught exception
 #todo: at most 10 characters for unclosed comment
-#todo: write full names and student numbers at the beggining of compiler.py
+#todo: write full names and student numbers at the beggining of compiler.py [50%]
