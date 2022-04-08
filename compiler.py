@@ -1,4 +1,5 @@
-#Shahab Hosseini Moghaddam 98015716
+# Shahab Hosseini Moghaddam 98105716
+# Parham Chavoshian 98100118
 from scanner import Scanner
 
 sc = Scanner()

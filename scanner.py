@@ -120,7 +120,7 @@ class Scanner:
             if self.state.has_star:
                 if not self.file_ended: self.program.seek(self.program.tell() - 1)
                 self.token = self.token[0:-1]
-            if self.state.name != 11 and self.state.name != 16:
+            if self.state.name != 11 and self.state.name != 16 and self.state.name != 18:
                 self.line_of_tokens_has_text = True
                 if self.is_start_of_line_of_tokens:
                     self.is_start_of_line_of_tokens = False
