@@ -1,3 +1,4 @@
+from lib2to3.pgen2 import token
 import re
 
 class Node:
@@ -29,6 +30,8 @@ class DFA:
 
 class Scanner:
     def __init__(self) -> None:
+        self.initialize()
+
         self.start_state = 0
 
         self.eof_state = 20
@@ -45,6 +48,7 @@ class Scanner:
 
 
         self.valid_char_regex = "[\x09\x0A\x0B\x0C\x0D\x20\[\]\<;,:()+\-=*/\#\x1A0-9a-zA-Z.]"
+
         self.transition_function = {0: {"[0-9]": 1, "[a-zA-Z]": 5, "[\[\]\<;,:()+\-]": 7, "\*": 8, "=": 9,
                                         "[\x09\x0A\x0B\x0C\x0D\x20]": 11, "/": 12, "\#": 15, "\x1A": 20},
                                     1: {"[0-9]": 1, "[.]": 2, "[\x09\x0A\x0B\x0C\x0D\x20\[\]\<;,:()+\-=*/\#\x1A]": 4,
@@ -93,16 +97,22 @@ class Scanner:
             char = '\x1A'
         self.state = self.dfa.next_state(char)
         if self.state.name == self.eof_state:
+            self.close()
             return "END" # way to communicate file end
 
         self.token += char
         if self.state.is_error:
             self.has_error = True
+            self.line_of_errors_has_text = True
+            if self.is_start_of_line_of_errors:
+                self.is_start_of_line_of_errors = False
+                self.errors_file.write("{}.\t".format(self.line_of_file))
             if self.state.has_star:
                 if not self.file_ended: self.program.seek(self.program.tell() - 1)
                 self.token = self.token[0:-1]
+            if self.state.name == 19 and len(self.token) > 10: self.token = self.token[:10] + '...'
             self.errors_file.write(
-                "{}.\t({}, {})\n".format(self.line_of_file, self.token, self.errors[self.state.name]))
+                "({}, {}) ".format(self.token, self.errors[self.state.name]))
             self.token = ""
             return "CON" #continue
 
@@ -111,8 +121,9 @@ class Scanner:
                 if not self.file_ended: self.program.seek(self.program.tell() - 1)
                 self.token = self.token[0:-1]
             if self.state.name != 11 and self.state.name != 16:
-                if self.is_start_of_line:
-                    self.is_start_of_line = False
+                self.line_of_tokens_has_text = True
+                if self.is_start_of_line_of_tokens:
+                    self.is_start_of_line_of_tokens = False
                     self.tokens_file.write("{}.\t".format(self.line_of_file))
                 if self.state.name == 6:
                     if self.token in self.key_words:
@@ -128,15 +139,22 @@ class Scanner:
                     self.tokens_file.write("({}, {}) ".format(self.classes[self.state.name], self.token))
             if re.search("\x0A", self.token):
                 self.line_of_file += 1
-                self.tokens_file.write("\n")
-                self.is_start_of_line = True
+                if self.line_of_tokens_has_text: self.tokens_file.write("\n")
+                if self.line_of_errors_has_text: self.errors_file.write("\n")
+                self.is_start_of_line_of_tokens = True
+                self.is_start_of_line_of_errors = True
+                self.line_of_tokens_has_text = False
+                self.line_of_errors_has_text = False
             self.token = ""
             self.state = 0
 
     def initialize(self, input_path: str = 'input.txt'):
         self.token = ""
         self.line_of_file = 1
-        self.is_start_of_line = True
+        self.is_start_of_line_of_tokens = True
+        self.is_start_of_line_of_errors = True
+        self.line_of_tokens_has_text = False
+        self.line_of_errors_has_text = False
         self.has_error = False
         self.file_ended = False
         self.program = open(input_path, 'r')
