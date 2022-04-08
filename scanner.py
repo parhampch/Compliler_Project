@@ -1,5 +1,6 @@
-from lib2to3.pgen2 import token
 import re
+import os
+
 
 class Node:
     def __init__(self, name: int, is_final: bool, has_star: bool, is_error: bool) -> None:
@@ -24,7 +25,8 @@ class DFA:
             if re.search(regex, char) != None:
                 self.current_state = self.states[self.transition_function[self.current_state.name][regex]]
                 break
-        else: self.current_state = self.states[self.trash_state]
+        else:
+            self.current_state = self.states[self.trash_state]
         return self.current_state
 
 
@@ -38,14 +40,19 @@ class Scanner:
 
         self.trash_state = 23
 
-        self.states = {0: Node(0, False, False, False), 1: Node(1, False, False, False), 2: Node(2, False, False, False), 3: Node(3, False, False, False),
-                       4: Node(4, True, True, False), 5: Node(5, False, False, False), 6: Node(6, True, True, False), 7: Node(7, True, False, False),
-                       8: Node(8, False, False, False), 9: Node(9, False, False, False), 10: Node(10, True, True, False), 11: Node(11, True, False, False),
-                       12: Node(12, False, False, False), 13: Node(13, False, False, False), 14: Node(14, False, False, False),15: Node(15, False, False, False),
-                       16: Node(16, True, False, False), 17: Node(17, True, False, True), 18: Node(18, True, False, False), 19: Node(19, True, True, True),
-                       20: Node(20, True, False, False), 21: Node(21, True, True, False), 22: Node(22, True, False, True), 23: Node(23, True, False, True),
+        self.states = {0: Node(0, False, False, False), 1: Node(1, False, False, False),
+                       2: Node(2, False, False, False), 3: Node(3, False, False, False),
+                       4: Node(4, True, True, False), 5: Node(5, False, False, False), 6: Node(6, True, True, False),
+                       7: Node(7, True, False, False),
+                       8: Node(8, False, False, False), 9: Node(9, False, False, False),
+                       10: Node(10, True, True, False), 11: Node(11, True, False, False),
+                       12: Node(12, False, False, False), 13: Node(13, False, False, False),
+                       14: Node(14, False, False, False), 15: Node(15, False, False, False),
+                       16: Node(16, True, False, False), 17: Node(17, True, False, True),
+                       18: Node(18, True, False, False), 19: Node(19, True, True, True),
+                       20: Node(20, True, False, False), 21: Node(21, True, True, False),
+                       22: Node(22, True, False, True), 23: Node(23, True, False, True),
                        24: Node(24, True, True, True)}
-
 
         self.valid_char_regex = "[\x09\x0A\x0B\x0C\x0D\x20\[\]\<;,:()+\-=*/\#\x1A0-9a-zA-Z.]"
 
@@ -53,19 +60,21 @@ class Scanner:
                                         "[\x09\x0A\x0B\x0C\x0D\x20]": 11, "/": 12, "\#": 15, "\x1A": 20},
                                     1: {"[0-9]": 1, "[.]": 2, "[\x09\x0A\x0B\x0C\x0D\x20\[\]\<;,:()+\-=*/\#\x1A]": 4,
                                         "[^\x09\x0A\x0B\x0C\x0D\x20\[\]\<;,:()+\-=*/\#\x1A0-9.]": 17},
-                                    2: {"[0-9]": 3, "[^0-9]": 17}, #SUS: what if it has a whitespace or comment after it? should it go to a starred state then?
+                                    2: {"[0-9]": 3, "[^0-9]": 17},
+                                    # SUS: what if it has a whitespace or comment after it? should it go to a starred state then?
                                     3: {"[0-9]": 3, "[\x09\x0A\x0B\x0C\x0D\x20\[\]\<;,:()+\-=*/\#\x1A]": 4,
                                         "[^\x09\x0A\x0B\x0C\x0D\x20\[\]\<;,:()+\-=*/\#\x1A0-9]": 17},
                                     4: {},
                                     5: {"[a-zA-Z0-9]": 5, "[\x09\x0A\x0B\x0C\x0D\x20\[\]\<;,:()+\-=*/\#\x1A]": 6},
                                     6: {},
                                     7: {},
-                                    8: {"\*": 7, "[\x09\x0A\x0B\x0C\x0D\x20\[\]\<;,:()+\-=\#\x1A0-9a-zA-Z]": 10, "/": 22},
+                                    8: {"\*": 7, "[\x09\x0A\x0B\x0C\x0D\x20\[\]\<;,:()+\-=\#\x1A0-9a-zA-Z]": 10,
+                                        "/": 22},
                                     9: {"=": 7, "[\x09\x0A\x0B\x0C\x0D\x20\[\]\<;,:()+\-*/\#\x1A0-9a-zA-Z]": 10},
                                     10: {},
                                     11: {},
                                     12: {"\*": 13, "[^\*]": 24},
-                                    13: {"\*": 14,"\x1A": 19, "[^\*\x1A]": 13},
+                                    13: {"\*": 14, "\x1A": 19, "[^\*\x1A]": 13},
                                     14: {"\*": 14, "[^\*/\x1A]": 13, "/": 18, "\x1A": 19},
                                     15: {"\x1A": 21, "\n": 16, "[^\x1A\n]": 15},
                                     16: {},
@@ -77,28 +86,35 @@ class Scanner:
                                     22: {}
                                     }
 
-        self.classes = {4: "NUMBER", 6: "keyword_token", 7: "SYMBOL", 10: "SYMBOL", 11: "whiteSpace", 16: "comment", 18: "comment", 21: "comment", 20: "Finish"}
+        self.classes = {4: "NUMBER", 6: "keyword_token", 7: "SYMBOL", 10: "SYMBOL", 11: "whiteSpace", 16: "comment",
+                        18: "comment", 21: "comment", 20: "Finish"}
 
-        self.errors ={17: "Invalid number", 22: "Unmatched comment", 19: "Unclosed comment", 23: "Invalid input", 24: "Invalid input"}
+        self.errors = {17: "Invalid number", 22: "Unmatched comment", 19: "Unclosed comment", 23: "Invalid input",
+                       24: "Invalid input"}
 
         self.key_words = ["break", "continue", "def", "else", "if", "return", "while"]
 
-        self.symbol_table = {1: {'lexeme': 'break'}, 2: {'lexeme': 'continue'}, 3: {'lexeme': 'def'}, 4: {'lexeme': 'else'}, 5: {'lexeme': 'if'},
+        self.symbol_table = {1: {'lexeme': 'break'}, 2: {'lexeme': 'continue'}, 3: {'lexeme': 'def'},
+                             4: {'lexeme': 'else'}, 5: {'lexeme': 'if'},
                              6: {'lexeme': 'return'}, 7: {'lexeme': 'while'}}
-        
+
         self.symbol_code = len(self.symbol_table) + 1
 
         self.dfa = DFA(self.states, self.transition_function, self.start_state, self.trash_state)
 
     def get_next_token(self):
-        char = self.program.read(1)
+        if not self.is_cache:
+            char = self.program.read(1)
+        else:
+            char = self.cached
+            self.is_cache = False
         if not char:
             self.file_ended = True
             char = '\x1A'
         self.state = self.dfa.next_state(char)
         if self.state.name == self.eof_state:
             self.close()
-            return "END" # way to communicate file end
+            return "END"  # way to communicate file end
 
         self.token += char
         if self.state.is_error:
@@ -108,17 +124,19 @@ class Scanner:
                 self.is_start_of_line_of_errors = False
                 self.errors_file.write("{}.\t".format(self.line_of_file))
             if self.state.has_star:
-                if not self.file_ended: self.program.seek(self.program.tell() - 1)
+                self.cached = self.token[-1]
+                self.is_cache = True
                 self.token = self.token[0:-1]
             if self.state.name == 19 and len(self.token) > 10: self.token = self.token[:10] + '...'
             self.errors_file.write(
                 "({}, {}) ".format(self.token, self.errors[self.state.name]))
             self.token = ""
-            return "CON" #continue
+            return "CON"  # continue
 
         if self.state.is_final:
             if self.state.has_star:
-                if not self.file_ended: self.program.seek(self.program.tell() - 1)
+                self.cached = self.token[-1]
+                self.is_cache = True
                 self.token = self.token[0:-1]
             if self.state.name != 11 and self.state.name != 16 and self.state.name != 18:
                 self.line_of_tokens_has_text = True
@@ -151,6 +169,8 @@ class Scanner:
     def initialize(self, input_path: str = 'input.txt'):
         self.token = ""
         self.line_of_file = 1
+        self.cached = ''
+        self.is_cache = False
         self.is_start_of_line_of_tokens = True
         self.is_start_of_line_of_errors = True
         self.line_of_tokens_has_text = False
@@ -174,8 +194,7 @@ class Scanner:
         self.symbol_table_file.close()
         pass
 
-
-#todo: implement get_next_token function [done]
-#todo: graceful termination/ no uncaught exception
-#todo: at most 10 characters for unclosed comment
-#todo: write full names and student numbers at the beggining of compiler.py [50%]
+# todo: implement get_next_token function [done]
+# todo: graceful termination/ no uncaught exception
+# todo: at most 10 characters for unclosed comment
+# todo: write full names and student numbers at the beggining of compiler.py [50%]
