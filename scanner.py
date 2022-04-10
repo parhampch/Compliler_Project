@@ -52,7 +52,7 @@ class Scanner:
                        18: Node(18, True, False, False), 19: Node(19, True, True, True),
                        20: Node(20, True, False, False), 21: Node(21, True, True, False),
                        22: Node(22, True, False, True), 23: Node(23, True, False, True),
-                       24: Node(24, True, True, True)}
+                       24: Node(24, True, True, True), 25: Node(25, True, True, True)}
 
         self.valid_char_regex = "[\x09\x0A\x0B\x0C\x0D\x20\[\]\<;,:()+\-=*/\#\x1A0-9a-zA-Z.]"
 
@@ -60,8 +60,7 @@ class Scanner:
                                         "[\x09\x0A\x0B\x0C\x0D\x20]": 11, "/": 12, "\#": 15, "\x1A": 20},
                                     1: {"[0-9]": 1, "[.]": 2, "[\x09\x0A\x0B\x0C\x0D\x20\[\]\<;,:()+\-=*/\#\x1A]": 4,
                                         "[^\x09\x0A\x0B\x0C\x0D\x20\[\]\<;,:()+\-=*/\#\x1A0-9.]": 17},
-                                    2: {"[0-9]": 3, "[^0-9]": 17},
-                                    # SUS: what if it has a whitespace or comment after it? should it go to a starred state then?
+                                    2: {"[0-9]": 3, "[^0-9\x1A]": 17, "[\x1A]": 25},
                                     3: {"[0-9]": 3, "[\x09\x0A\x0B\x0C\x0D\x20\[\]\<;,:()+\-=*/\#\x1A]": 4,
                                         "[^\x09\x0A\x0B\x0C\x0D\x20\[\]\<;,:()+\-=*/\#\x1A0-9]": 17},
                                     4: {},
@@ -89,8 +88,8 @@ class Scanner:
         self.classes = {4: "NUMBER", 6: "keyword_token", 7: "SYMBOL", 10: "SYMBOL", 11: "whiteSpace", 16: "comment",
                         18: "comment", 21: "comment", 20: "Finish"}
 
-        self.errors = {17: "Invalid number", 22: "Unmatched comment", 19: "Unclosed comment", 23: "Invalid input",
-                       24: "Invalid input"}
+        self.errors = {17: "Invalid number",25: "Invalid number", 22: "Unmatched comment", 19: "Unclosed comment",
+                       23: "Invalid input", 24: "Invalid input"}
 
         self.key_words = ["break", "continue", "def", "else", "if", "return", "while"]
 
@@ -103,68 +102,73 @@ class Scanner:
         self.dfa = DFA(self.states, self.transition_function, self.start_state, self.trash_state)
 
     def get_next_token(self):
-        if not self.is_cache:
-            char = self.program.read(1)
-        else:
-            char = self.cached
-            self.is_cache = False
-        if not char:
-            self.file_ended = True
-            char = '\x1A'
-        self.state = self.dfa.next_state(char)
-        if self.state.name == self.eof_state:
-            self.close()
-            return "END"  # way to communicate file end
+        while True:
+            if not self.is_cache:
+                char = self.program.read(1)
+            else:
+                char = self.cached
+                self.is_cache = False
+            if not char:
+                self.file_ended = True
+                char = '\x1A'
+            self.state = self.dfa.next_state(char)
+            if self.state.name == self.eof_state:
+                self.close()
+                return "END"  # way to communicate file end
 
-        self.token += char
-        if self.state.is_error:
-            self.has_error = True
-            self.line_of_errors_has_text = True
-            if self.is_start_of_line_of_errors:
-                self.is_start_of_line_of_errors = False
-                self.errors_file.write("{}.\t".format(self.line_of_file))
-            if self.state.has_star:
-                self.cached = self.token[-1]
-                self.is_cache = True
-                self.token = self.token[0:-1]
-            if self.state.name == 19 and len(self.token) > 10: self.token = self.token[:10] + '...'
-            self.errors_file.write(
-                "({}, {}) ".format(self.token, self.errors[self.state.name]))
-            self.token = ""
-            return "CON"  # continue
-
-        if self.state.is_final:
-            if self.state.has_star:
-                self.cached = self.token[-1]
-                self.is_cache = True
-                self.token = self.token[0:-1]
-            if self.state.name != 11 and self.state.name != 16 and self.state.name != 18:
-                self.line_of_tokens_has_text = True
-                if self.is_start_of_line_of_tokens:
-                    self.is_start_of_line_of_tokens = False
-                    self.tokens_file.write("{}.\t".format(self.line_of_file))
-                if self.state.name == 6:
-                    if self.token in self.key_words:
-                        self.tokens_file.write("({}, {}) ".format('KEYWORD', self.token))
+            self.token += char
+            if self.state.is_error:
+                self.has_error = True
+                self.line_of_errors_has_text = True
+                if self.is_start_of_line_of_errors:
+                    self.is_start_of_line_of_errors = False
+                    self.errors_file.write("{}.\t".format(self.line_of_file))
+                if self.state.has_star:
+                    self.cached = self.token[-1]
+                    self.is_cache = True
+                    self.token = self.token[0:-1]
+                if self.state.name == 19 and len(self.token) > 10: self.token = self.token[:10] + '...'
+                self.errors_file.write(
+                    "({}, {}) ".format(self.token, self.errors[self.state.name]))
+                self.token = ""
+                continue
+            token_type, token_lexeme = "", ""
+            if self.state.is_final:
+                if self.state.has_star:
+                    self.cached = self.token[-1]
+                    self.is_cache = True
+                    self.token = self.token[0:-1]
+                if self.state.name != 11 and self.state.name != 16 and self.state.name != 18:
+                    self.line_of_tokens_has_text = True
+                    if self.is_start_of_line_of_tokens:
+                        self.is_start_of_line_of_tokens = False
+                        self.tokens_file.write("{}.\t".format(self.line_of_file))
+                    if self.state.name == 6:
+                        if self.token in self.key_words:
+                            token_type, token_lexeme = 'KEYWORD', self.token
+                            self.tokens_file.write("({}, {}) ".format(token_type, token_lexeme))
+                        else:
+                            token_type, token_lexeme = 'ID', self.token
+                            self.tokens_file.write("({}, {}) ".format(token_type, token_lexeme))
+                            for symbol in self.symbol_table.values():
+                                if self.token == symbol['lexeme']: break
+                            else:  # if the token was not in file before, adds it.
+                                self.symbol_table[self.symbol_code] = {'lexeme': self.token}
+                                self.symbol_code += 1
                     else:
-                        self.tokens_file.write("({}, {}) ".format('ID', self.token))
-                        for symbol in self.symbol_table.values():
-                            if self.token == symbol['lexeme']: break
-                        else:  # if the token was not in file before, adds it.
-                            self.symbol_table[self.symbol_code] = {'lexeme': self.token}
-                            self.symbol_code += 1
-                else:
-                    self.tokens_file.write("({}, {}) ".format(self.classes[self.state.name], self.token))
-            if re.search("\x0A", self.token):
-                self.line_of_file += 1
-                if self.line_of_tokens_has_text: self.tokens_file.write("\n")
-                if self.line_of_errors_has_text: self.errors_file.write("\n")
-                self.is_start_of_line_of_tokens = True
-                self.is_start_of_line_of_errors = True
-                self.line_of_tokens_has_text = False
-                self.line_of_errors_has_text = False
-            self.token = ""
-            self.state = 0
+                        token_type, token_lexeme = self.classes[self.state.name], self.token
+                        self.tokens_file.write("({}, {}) ".format(token_type, token_lexeme))
+                if re.search("\x0A", self.token):
+                    self.line_of_file += 1
+                    if self.line_of_tokens_has_text: self.tokens_file.write("\n")
+                    if self.line_of_errors_has_text: self.errors_file.write("\n")
+                    self.is_start_of_line_of_tokens = True
+                    self.is_start_of_line_of_errors = True
+                    self.line_of_tokens_has_text = False
+                    self.line_of_errors_has_text = False
+                self.token = ""
+                self.state = 0
+                if token_type.strip()!= "": return (token_type, token_lexeme)
 
     def initialize(self, input_path: str = 'input.txt'):
         self.token = ""
@@ -194,7 +198,4 @@ class Scanner:
         self.symbol_table_file.close()
         pass
 
-# todo: implement get_next_token function [done]
 # todo: graceful termination/ no uncaught exception
-# todo: at most 10 characters for unclosed comment
-# todo: write full names and student numbers at the beggining of compiler.py [50%]
