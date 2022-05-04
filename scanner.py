@@ -90,7 +90,7 @@ class Scanner:
         self.errors = {17: "Invalid number",25: "Invalid number", 22: "Unmatched comment", 19: "Unclosed comment",
                        23: "Invalid input", 24: "Invalid input"}
 
-        self.key_words = ["break", "continue", "def", "else", "if", "return", "while"]
+        self.key_words = ["break", "continue", "def", "else", "if", "return", "while", "global"]
 
         self.symbol_table = {1: {'lexeme': 'break'}, 2: {'lexeme': 'continue'}, 3: {'lexeme': 'def'},
                              4: {'lexeme': 'else'}, 5: {'lexeme': 'if'},
@@ -113,7 +113,7 @@ class Scanner:
             self.state = self.dfa.next_state(char)
             if self.state.name == self.eof_state:
                 self.close()
-                return "$"
+                return "$", "$", self.line_of_file
 
             self.token += char
             if self.state.is_error:
@@ -121,14 +121,13 @@ class Scanner:
                 self.line_of_errors_has_text = True
                 if self.is_start_of_line_of_errors:
                     self.is_start_of_line_of_errors = False
-                    self.errors_file.write("{}.\t".format(self.line_of_file))
+                    # self.errors_file.write("{}.\t".format(self.line_of_file))
                 if self.state.has_star:
                     self.cached = self.token[-1]
                     self.is_cache = True
                     self.token = self.token[0:-1]
                 if self.state.name == 19 and len(self.token) > 10: self.token = self.token[:10] + '...'
-                self.errors_file.write(
-                    "({}, {}) ".format(self.token, self.errors[self.state.name]))
+                # self.errors_file.write("({}, {}) ".format(self.token, self.errors[self.state.name]))
                 self.token = ""
                 continue
             token_type, token_lexeme = "", ""
@@ -141,14 +140,14 @@ class Scanner:
                     self.line_of_tokens_has_text = True
                     if self.is_start_of_line_of_tokens:
                         self.is_start_of_line_of_tokens = False
-                        self.tokens_file.write("{}.\t".format(self.line_of_file))
+                        # self.tokens_file.write("{}.\t".format(self.line_of_file))
                     if self.state.name == 6:
                         if self.token in self.key_words:
                             token_type, token_lexeme = 'KEYWORD', self.token
-                            self.tokens_file.write("({}, {}) ".format(token_type, token_lexeme))
+                            # self.tokens_file.write("({}, {}) ".format(token_type, token_lexeme))
                         else:
                             token_type, token_lexeme = 'ID', self.token
-                            self.tokens_file.write("({}, {}) ".format(token_type, token_lexeme))
+                            # self.tokens_file.write("({}, {}) ".format(token_type, token_lexeme))
                             for symbol in self.symbol_table.values():
                                 if self.token == symbol['lexeme']: break
                             else:  # if the token was not in file before, adds it.
@@ -156,18 +155,18 @@ class Scanner:
                                 self.symbol_code += 1
                     else:
                         token_type, token_lexeme = self.classes[self.state.name], self.token
-                        self.tokens_file.write("({}, {}) ".format(token_type, token_lexeme))
+                        # self.tokens_file.write("({}, {}) ".format(token_type, token_lexeme))
                 if re.search("\x0A", self.token):
                     self.line_of_file += 1
-                    if self.line_of_tokens_has_text: self.tokens_file.write("\n")
-                    if self.line_of_errors_has_text: self.errors_file.write("\n")
+                    # if self.line_of_tokens_has_text: self.tokens_file.write("\n")
+                    # if self.line_of_errors_has_text: self.errors_file.write("\n")
                     self.is_start_of_line_of_tokens = True
                     self.is_start_of_line_of_errors = True
                     self.line_of_tokens_has_text = False
                     self.line_of_errors_has_text = False
                 self.token = ""
                 self.state = 0
-                if token_type.strip()!= "": return (token_type, token_lexeme)
+                if token_type.strip()!= "": return (token_type, token_lexeme, self.line_of_file)
 
     def initialize(self, input_path: str = 'input.txt'):
         self.token = ""
@@ -181,20 +180,20 @@ class Scanner:
         self.has_error = False
         self.file_ended = False
         self.program = open(input_path, 'r')
-        self.tokens_file = open('tokens.txt', 'w')
-        self.errors_file = open('lexical_errors.txt', 'w')
-        self.symbol_table_file = open('symbol_table.txt', 'w')
+        # self.tokens_file = open('tokens.txt', 'w')
+        # self.errors_file = open('lexical_errors.txt', 'w')
+        # self.symbol_table_file = open('symbol_table.txt', 'w')
         pass
 
     def close(self):
-        if not self.has_error:
-            self.errors_file.write('There is no lexical error.')
+        # if not self.has_error:
+            # self.errors_file.write('There is no lexical error.')
 
-        for key in self.symbol_table.keys():
-            self.symbol_table_file.write("{}.\t{}\n".format(key, self.symbol_table[key]['lexeme']))
-        self.errors_file.close()
-        self.tokens_file.close()
-        self.symbol_table_file.close()
+        # for key in self.symbol_table.keys():
+            # self.symbol_table_file.write("{}.\t{}\n".format(key, self.symbol_table[key]['lexeme']))
+        # self.errors_file.close()
+        # self.tokens_file.close()
+        # self.symbol_table_file.close()
         pass
 
 # todo: graceful termination/ no uncaught exception
