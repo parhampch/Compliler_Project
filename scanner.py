@@ -1,5 +1,4 @@
 import re
-import os
 
 
 class Node:
@@ -114,7 +113,7 @@ class Scanner:
             self.state = self.dfa.next_state(char)
             if self.state.name == self.eof_state:
                 self.close()
-                return "END"  # way to communicate file end
+                return "$"
 
             self.token += char
             if self.state.is_error:
