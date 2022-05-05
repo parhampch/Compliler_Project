@@ -1,3 +1,4 @@
+# from fcntl import F_SEAL_SEAL 
 from scanner import Scanner
 from anytree import Node, RenderTree
 
@@ -796,11 +797,15 @@ class Parser:
         parse_tree_output.write(buffer)
         parse_tree_output.close()
 
-        syntax_error_output = open("syntax_errors.txt", "w", encoding="utf-8")
-        syntax_error_output.write("There is no syntax error.")
-        syntax_error_output.close()
+        # syntax_error_output = open("syntax_errors.txt", "w", encoding="utf-8")
+        # syntax_error_output.write("There is no syntax error.")
+        # syntax_error_output.close()
 
     def parse_program(self):
+        syntax_error_output = open("syntax_errors.txt", "w", encoding="utf-8")
+        has_syntax_error = False
+        terminals = ["break", "continue", "def", "else", "if", "return", "while", "global", "[", "]", "(", ")",
+                     "ID", "=", ";", ",", ":", "==", "<", "+", "-", "*", "**", "NUM", "$"]
         sc = Scanner()
         stack = []
         root = Node("Program")
@@ -821,11 +826,30 @@ class Parser:
                     return root
                 current_node = stack.pop()
                 current_sentential = current_node.name
-                if effective_token == current_sentential:
-                    current_node.name = "({:s}, {:s})".format(token_type, token_lexeme)
-                    break
+                if current_sentential in terminals:
+                    if effective_token == current_sentential:
+                        current_node.name = "({:s}, {:s})".format(token_type, token_lexeme)
+                        break
+                    else:
+                        has_syntax_error = True
+                        syntax_error_output.write("#{} : syntax error, missing {}\n".format(line_number, current_sentential))
+                        continue
                 else:
                     next_tokens = parsing_table[current_sentential][effective_token].split(" ")
+                    if "" in next_tokens:
+                        if effective_token == "$":
+                            has_syntax_error = True
+                            stack.append(current_node)
+                            syntax_error_output.write("#{} : syntax error, unexpected EOF\n".format(line_number))
+                            return root
+                        has_syntax_error = True
+                        stack.append(current_node)
+                        syntax_error_output.write("#{} : syntax error, illegal {}\n".format(line_number, effective_token))
+                        break
+                    elif "synch" in next_tokens:
+                        has_syntax_error = True
+                        syntax_error_output.write("#{} : syntax error, missing {}\n".format(line_number, current_sentential))
+                        continue
                     new_nodes_list = []
                     for name in next_tokens:
                         new_node = Node(name= name, parent=current_node)
@@ -833,4 +857,9 @@ class Parser:
                     for node in reversed(new_nodes_list):
                         if node.name != "epsilon":
                             stack.append(node)
+        if not has_syntax_error:
+            syntax_error_output.write("There is no syntax error.")
+        syntax_error_output.close()
+
+
 
