@@ -1,4 +1,3 @@
-# from fcntl import F_SEAL_SEAL 
 from scanner import Scanner
 from anytree import Node, RenderTree
 
@@ -789,20 +788,20 @@ parsing_table = {
 class Parser:
 
     def start(self):
-        root = self.parse_program()
+        root, has_syntax_error = self.parse_program()
         parse_tree_output = open("parse_tree.txt", "w", encoding="utf-8")
         buffer = ''
         for pre, fill, node in RenderTree(root):
             buffer = buffer + "{:s}{:s}".format(pre, node.name) + "\n"
         parse_tree_output.write(buffer)
         parse_tree_output.close()
+        if not has_syntax_error:
+            self.syntax_error_output.write("There is no syntax error.")
+        self.syntax_error_output.close()
 
-        # syntax_error_output = open("syntax_errors.txt", "w", encoding="utf-8")
-        # syntax_error_output.write("There is no syntax error.")
-        # syntax_error_output.close()
 
     def parse_program(self):
-        syntax_error_output = open("syntax_errors.txt", "w", encoding="utf-8")
+        self.syntax_error_output = open("syntax_errors.txt", "w", encoding="utf-8")
         has_syntax_error = False
         terminals = ["break", "continue", "def", "else", "if", "return", "while", "global", "[", "]", "(", ")",
                      "ID", "=", ";", ",", ":", "==", "<", "+", "-", "*", "**", "NUM", "$"]
@@ -823,7 +822,7 @@ class Parser:
             while True:
                 if (len(stack) == 0):
                     Node(name="$", parent=root)
-                    return root
+                    return root, has_syntax_error
                 current_node = stack.pop()
                 current_sentential = current_node.name
                 if current_sentential in terminals:
@@ -832,7 +831,8 @@ class Parser:
                         break
                     else:
                         has_syntax_error = True
-                        syntax_error_output.write("#{} : syntax error, missing {}\n".format(line_number, current_sentential))
+                        self.syntax_error_output.write("#{} : syntax error, missing {}\n".format(line_number, current_sentential))
+                        current_node.parent = None
                         continue
                 else:
                     next_tokens = parsing_table[current_sentential][effective_token].split(" ")
@@ -840,15 +840,18 @@ class Parser:
                         if effective_token == "$":
                             has_syntax_error = True
                             stack.append(current_node)
-                            syntax_error_output.write("#{} : syntax error, unexpected EOF\n".format(line_number))
-                            return root
+                            self.syntax_error_output.write("#{} : syntax error, Unexpected EOF\n".format(line_number))
+                            for remaining_node in stack:
+                                remaining_node.parent = None
+                            return root, has_syntax_error
                         has_syntax_error = True
                         stack.append(current_node)
-                        syntax_error_output.write("#{} : syntax error, illegal {}\n".format(line_number, effective_token))
+                        self.syntax_error_output.write("#{} : syntax error, illegal {}\n".format(line_number, effective_token))
                         break
                     elif "synch" in next_tokens:
                         has_syntax_error = True
-                        syntax_error_output.write("#{} : syntax error, missing {}\n".format(line_number, current_sentential))
+                        self.syntax_error_output.write("#{} : syntax error, missing {}\n".format(line_number, current_sentential))
+                        current_node.parent = None
                         continue
                     new_nodes_list = []
                     for name in next_tokens:
@@ -857,9 +860,3 @@ class Parser:
                     for node in reversed(new_nodes_list):
                         if node.name != "epsilon":
                             stack.append(node)
-        if not has_syntax_error:
-            syntax_error_output.write("There is no syntax error.")
-        syntax_error_output.close()
-
-
-
