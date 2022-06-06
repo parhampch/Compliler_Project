@@ -62,6 +62,7 @@ class code_generator:
             t = self.gettemp()
             self.pb[self.i] = ("ADD", self.ss.pop(), self.ss.pop(), t)
             self.i += 1
+            self.ss.append(t)
             pass
         elif action == "\\mult":
             t = self.gettemp()
@@ -69,6 +70,27 @@ class code_generator:
             self.i += 1
             self.ss.append(t)
             pass
+        elif action == "\\sub":
+            t = self.gettemp()
+            rhs = self.ss.pop()
+            lhs = self.ss.pop()
+            self.pb[self.i] = ("SUB", lhs, rhs, t)
+            self.i += 1
+            self.ss.append(t)
+            pass
+        elif action == "\\pow":
+            exponent = self.ss.pop()
+            base = self.ss.pop()
+            t = self.gettemp()
+            t2 = self.gettemp()
+            self.pb[self.i] = ("ASSIGN", "#1", t)
+            self.pb[self.i+1] = ("ASSIGN", exponent, t2)
+            self.pb[self.i+2] = ("JPF", t2, self.i+6)
+            self.pb[self.i+3] = ("MULT", t, base, t)
+            self.pb[self.i+4] = ("SUB", t2, "#1", t2)
+            self.pb[self.i+5] = ("JP", self.i+2)
+            self.i += 6
+            self.ss.append(t)
         elif action == "\\pnum":
             self.ss.append("#" + input)
         elif action == "\\assign":
@@ -95,43 +117,7 @@ class code_generator:
             self.ss.append(1)
         elif action == "\\eRelop":
             self.ss.append(0)
-        elif action == "\\relational_expression":
-            rhs = self.ss.pop()
-            relop = self.ss.pop()
-            lhs = self.ss.pop()
-            if relop == "0": relop = "EQ"
-            elif relop == "1": relop = "LT"
-            t = self.gettemp()
-            self.pb[self.i] = (relop, lhs, rhs, t)
-            self.i += 1
-            self.ss.append(t)
-        elif action == "\\add":
-            rhs = self.ss.pop()
-            lhs = self.ss.pop()
-            t = self.gettemp()
-            self.pb[self.i] = ("ADD", lhs, rhs, t)
-            self.i += 1
-            self.ss.append(t)
-        elif action == "\\sub":
-            rhs = self.ss.pop()
-            lhs = self.ss.pop()
-            t = self.gettemp()
-            self.pb[self.i] = ("SUB", lhs, rhs, t)
-            self.i += 1
-            self.ss.append(t)
-        elif action == "\\pow":
-            exponent = self.ss.pop()
-            base = self.ss.pop()
-            t = self.gettemp()
-            t2 = self.gettemp()
-            self.pb[self.i] = ("ASSIGN", "#1", t)
-            self.pb[self.i+1] = ("ASSIGN", exponent, t2)
-            self.pb[self.i+2] = ("JPF", t2, self.i+6)
-            self.pb[self.i+3] = ("MULT", t, base, t)
-            self.pb[self.i+4] = ("SUB", t2, "#1", t2)
-            self.pb[self.i+5] = ("JP", self.i+2)
-            self.i += 6
-            self.ss.append(t)
+
         elif action == "\\relationalExpression":
             op2 = self.ss.pop()
             op = self.ss.pop()
