@@ -98,6 +98,8 @@ class code_generator:
             A = self.ss.pop()
             self.pb[self.i] = ("ASSIGN", R, A)
             self.i += 1
+
+        # todo
         elif action == "\\assignArr":
             # arr id -> index -> new value
             new_value = self.ss.pop()
@@ -107,7 +109,7 @@ class code_generator:
             t2 = self.gettemp()
             self.pb[self.i] = ("MULT", index, "#4", t)
             self.pb[self.i + 1] = ("ADD", t, arr_id, t2)
-            self.pb[self.i + 2] = ("ASSIGN", new_value, t2)
+            self.pb[self.i + 2] = ("ASSIGN", new_value, "@{}".format(t2))
             self.i += 3
             pass
         elif action == "\\funcRes":
@@ -201,19 +203,45 @@ class code_generator:
                 pass
             self.i += 1
         elif action == "\\start_list":
-            self.ss.append(self.i + 1)
-            self.ss.append(self.data_pointer)
-            self.i += 1
+            # self.ss.append(self.i)
+            # self.i += 1
+            pass
         elif action == "\\append":
-            self.pb[self.i] = ("ASSIGN", "#" + str(input), self.data_pointer)
+            num = self.ss.pop()
+            self.pb[self.i] = ("ASSIGN",num , self.data_pointer)
             self.data_pointer += 4
+            self.i += 1
         elif action == "\\endList":
-            self.pb[self.ss[-1]] = ("ASSIGN", "#" + str(self.ss[-2]), self.data_pointer)
-            self.data_pointer += 4
-            self.ss.pop()
-            self.ss.pop()
+            define_address = self.ss.pop()
+            first_element_address = define_address + 4
+            start_address = "#{}".format(first_element_address)
+            self.ss.append(define_address)
+            self.ss.append(start_address)
+            # self.data_pointer += 4
         elif action == "\\while_label":
             self.ss.append(self.i)
+        elif action == "\\calculate_primary":
+
+            '''
+            this will calculate an array's element location 
+            var1 = arr[arr[1] - 1];
+            will result in 
+            ('MULT', '#4', '#1', '1000')
+            ('ADD', '1000', 500, '1000')
+            ('SUB', '@1000', '#1', '1004')
+            ('MULT', '#4', '1004', '1008')
+            ('ADD', '1008', 500, '1008')
+            ('ASSIGN', '@1008', 516)
+            '''
+
+            t = self.gettemp()
+            index = self.ss.pop()
+            arr = self.ss.pop()
+            self.pb[self.i] = ("MULT", "#4", index, t)
+            self.pb[self.i+1] = ("ADD", t, arr, t)
+            self.ss.append("@{}".format(t))
+            self.i += 2
+            pass
         elif action == "\\while_save":
             self.ss.append(self.i)
             self.i = self.i + 1
@@ -226,6 +254,18 @@ class code_generator:
             self.ss.pop()
         elif action == "\\end_func":
             self.return_scope.pop()
+
+        elif action == "\\while":
+            a = self.ss.pop()
+            b = self.ss.pop()
+            c = self.ss.pop()
+            self.pb[a] = ("JPF", b, self.i+1)
+            self.pb[self.i] = ("JP", c)
+            self.i += 1
+            pass
+        elif action == "\\label":
+            self.ss.append(self.i)
+            pass
         else:
             print('\033[91m' + "unknown semantic action: :{}".format(action) +  '\033[0m')
 
