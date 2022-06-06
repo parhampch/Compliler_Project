@@ -9,6 +9,8 @@ class code_generator:
         self.temporary_pointer = 1000
         self.terminals = ["break", "continue", "def", "else", "if", "return", "while", "global", "[", "]", "(", ")",
                      "ID", "=", ";", ",", ":", "==", "<", "+", "-", "*", "**", "NUM", "$"]
+        self.incomplete_funcs = list()
+        self.return_scope = list()
     pass
 
 
@@ -27,6 +29,10 @@ class code_generator:
         value = "{}".format(self.temporary_pointer)
         self.temporary_pointer += 4
         return value
+
+    def add_instruction(self, instruction, option):
+        self.pb[self.i] = instruction
+        self.i+= 1
 
 
     def get_symbol_table_row(self, input):
@@ -140,36 +146,69 @@ class code_generator:
         elif action == "\\param":
             self.pb[self.i] = ("ASSIGN", "#0", self.data_pointer)
             column = self.get_symbol_table_row(input)
-            self.ss.append(column['address'])
+            # self.ss.append(column['address'])
             self.i += 1
+            self.data_pointer += 4
             pass
         elif action == "\\return":
+
+            '''return value is at the top of the stack.
+            we also have the address of our method at the return_scope
+            we need to assign value to return value (address + 4) and jump to where
+            return address (address + 8) shows'''
+
+            function_pointer = int(self.return_scope[-1])
             value = self.ss.pop()
-            address = self.ss.pop()
-            return_value_pointer = self.gettemp()
-            return_address = self.gettemp()
-            self.pb[self.i] = ("ADD", "#8", address, return_value_pointer)
-            self.pb[self.i+1] = ("ASSIGN", value, "@" + return_value_pointer)
-            self.pb[self.i+2] = ("ADD", "#4", address, return_address)
-            self.pb[self.i+3] = ("JP", "@"+return_address)
-            self.i += 4
-            pass
+            return_value_address = "{}".format(function_pointer + 4)
+            return_address_pointer = "@{}".format(function_pointer + 8)
+            self.pb[self.i] = ("ASSIGN", value, return_value_address)
+            self.pb[self.i+1] = ("JP", return_address_pointer)
+            self.i += 2
+
         elif action == "\\return_zero":
-            return_value_pointer = self.gettemp()
-            self.pb[self.i] = ("ASSIGN", "#0", return_value_pointer)
+
+            function_pointer = int(self.return_scope[-1])
+            return_address_pointer = "@{}".format(function_pointer + 8)
+            self.pb[self.i] = ("JP", return_address_pointer)
             self.i += 1
+
+        elif action == "\\save":
+            self.ss.append(self.i)
+            self.i += 1
+
+        elif action == "\\jpf_save":
+            address = self.ss.pop()
+            address2 = self.ss.pop()
+            self.pb[address] = ("JPF", address2, self.i+1)
+            self.ss.append(self.i)
+            self.i+= 1
+
+        elif action == "\\jp":
+            self.pb[self.ss.pop()] = ("JP", self.i)
+
+        elif action == "\\jpf":
+            address = self.ss.pop()
+            address2 = self.ss.pop()
+            self.pb[address] = ("JPF", address2, self.i)
+
         elif action == "\\func_def":
             self.pb[self.i] = ("ASSIGN", "#0", self.data_pointer)
             column = {'lexeme': input, 'address': self.data_pointer}
             self.symbol_table[len(self.symbol_table)] = column
-            self.ss.append(column['address'])
+            self.return_scope.append(column['address'])
             self.data_pointer += 4
             if input != "main":
                 self.pb[self.i+1] = ("JP",)
-                self.ss.append(self.i+1)
-                self.i += 1
+                self.pb[self.i+2] = ("ASSIGN", "#0", self.data_pointer) # return value.
+                self.pb[self.i+3] = ("ASSIGN", "#0", self.data_pointer + 4) # return address.
+                self.incomplete_funcs.append(self.i+1)
+                self.i += 3
+                self.data_pointer += 8
             else:
                 # fill all the previous JPs
+                while(len(self.incomplete_funcs) > 0):
+                    JP_address = self.incomplete_funcs.pop()
+                    self.pb[JP_address] = ("JP", self.i+1)
                 pass
             self.i += 1
         elif action == "\\start_list":
@@ -185,17 +224,19 @@ class code_generator:
             self.ss.pop()
             self.ss.pop()
         elif action == "\\while_label":
-            self.ss.append(i)
+            self.ss.append(self.i)
         elif action == "\\while_save":
-            self.ss.append(i)
-            i = i + 1
+            self.ss.append(self.i)
+            self.i = self.i + 1
         elif action == "\\end_while":
-            self.pb[self.ss[-1]] = ("JPF", self.ss[-2], i + 1)
-            self.pb[i] = ("JP", self.ss[-3])
-            i = i + 1
+            self.pb[self.ss[-1]] = ("JPF", self.ss[-2], self.i + 1)
+            self.pb[self.i] = ("JP", self.ss[-3])
+            i = self.i + 1
             self.ss.pop()
             self.ss.pop()
             self.ss.pop()
+        elif action == "\\end_func":
+            self.return_scope.pop()
         else:
             print('\033[91m' + "unknown semantic action: :{}".format(action) +  '\033[0m')
 
@@ -208,7 +249,7 @@ class code_generator:
         :return: None
         '''
         output = open('output.txt', 'w')
-        for key in self.pb:
+        for key in range(len(self.pb)):
             output.write("{}\t{}\n".format(key, self.pb[key]))
         output.close()
 
