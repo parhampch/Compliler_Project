@@ -84,9 +84,6 @@ class code_generator:
         elif action == "\\funcRes":
 
             pass
-        elif action == "\\append":
-
-            pass
         elif action == "\\lRelop":
             self.ss.append(1)
         elif action == "\\eRelop":
@@ -175,6 +172,30 @@ class code_generator:
                 # fill all the previous JPs
                 pass
             self.i += 1
+        elif action == "\\start_list":
+            self.ss.append(self.i + 1)
+            self.ss.append(self.data_pointer)
+            self.i += 1
+        elif action == "\\append":
+            self.pb[self.i] = ("ASSIGN", "#" + str(input), self.data_pointer)
+            self.data_pointer += 4
+        elif action == "\\endList":
+            self.pb[self.ss[-1]] = ("ASSIGN", "#" + str(self.ss[-2]), self.data_pointer)
+            self.data_pointer += 4
+            self.ss.pop()
+            self.ss.pop()
+        elif action == "\\while_label":
+            self.ss.append(i)
+        elif action == "\\while_save":
+            self.ss.append(i)
+            i = i + 1
+        elif action == "\\end_while":
+            self.pb[self.ss[-1]] = ("JPF", self.ss[-2], i + 1)
+            self.pb[i] = ("JP", self.ss[-3])
+            i = i + 1
+            self.ss.pop()
+            self.ss.pop()
+            self.ss.pop()
         else:
             print('\033[91m' + "unknown semantic action: :{}".format(action) +  '\033[0m')
 
