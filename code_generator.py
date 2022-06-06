@@ -20,9 +20,9 @@ class code_generator:
         :param id: lexeme
         :return: row(if exists) and False (if does not)
         '''
-        for column in self.symbol_table:
-            if self.symbol_table[column]['lexeme'] == id:
-                return self.symbol_table[column]
+        for row in self.symbol_table:
+            if self.symbol_table[row]['lexeme'] == id:
+                return self.symbol_table[row]
         return False
 
     def gettemp(self):
@@ -40,40 +40,41 @@ class code_generator:
         searches symbol table for input. if no lexeme with that name exists, or one exists without an address, it will
         assign an address to it and return its row with format: ({'lexeme': 'x', 'address': '500'})
         '''
-        column = self.find_id(input)
-        if column == False:
-            column = {'lexeme': input, 'address': self.data_pointer}
-            self.symbol_table[len(self.symbol_table)] = column
+        row = self.find_id(input)
+        if row == False:
+            row = {'lexeme': input, 'address': self.data_pointer}
+            self.symbol_table[len(self.symbol_table)] = row
             self.data_pointer += 4
-        elif 'address' not in column:
-            column = {'lexeme': input, 'address': self.data_pointer}
-            self.symbol_table[len(self.symbol_table)] = column
+        elif 'address' not in row:
+            row = {'lexeme': input, 'address': self.data_pointer}
+            self.symbol_table[len(self.symbol_table)] = row
             self.data_pointer += 4
-        return column
+        return row
 
     def codegen(self, input, action):
         print("codegen executed with input: {} and action: {}".format(input, action))
         if action == "\\pid":
             if input in self.terminals:
                 return
-            column = self.get_symbol_table_row(input)
-            self.ss.append(column['address'])
+            row = self.get_symbol_table_row(input)
+            self.ss.append(row['address'])
         elif action == "\\add":
             t = self.gettemp()
-            self.pb[self.i] = ("+", self.ss.pop(), self.ss.pop(), t)
+            self.pb[self.i] = ("ADD", self.ss.pop(), self.ss.pop(), t)
             self.i += 1
             pass
         elif action == "\\mult":
             t = self.gettemp()
-            self.pb[self.i] = ("*", self.ss.pop(), self.ss.pop(), t)
+            self.pb[self.i] = ("MULT", self.ss.pop(), self.ss.pop(), t)
             self.i += 1
+            self.ss.append(t)
             pass
         elif action == "\\pnum":
             self.ss.append("#" + input)
         elif action == "\\assign":
             R = self.ss.pop()
             A = self.ss.pop()
-            self.pb[self.i] = ("ASSIGN", A, R, )
+            self.pb[self.i] = ("ASSIGN", R, A)
             self.i += 1
         elif action == "\\assignArr":
             # arr id -> index -> new value
@@ -145,8 +146,8 @@ class code_generator:
             self.ss.append(dest)
         elif action == "\\param":
             self.pb[self.i] = ("ASSIGN", "#0", self.data_pointer)
-            column = self.get_symbol_table_row(input)
-            # self.ss.append(column['address'])
+            row = self.get_symbol_table_row(input)
+            # self.ss.append(row['address'])
             self.i += 1
             self.data_pointer += 4
             pass
@@ -173,6 +174,8 @@ class code_generator:
             self.i += 1
 
         elif action == "\\save":
+            boolean_result = self.ss[-1]
+            self.pb[self.i] = ("JPF", boolean_result, "X")
             self.ss.append(self.i)
             self.i += 1
 
@@ -193,9 +196,9 @@ class code_generator:
 
         elif action == "\\func_def":
             self.pb[self.i] = ("ASSIGN", "#0", self.data_pointer)
-            column = {'lexeme': input, 'address': self.data_pointer}
-            self.symbol_table[len(self.symbol_table)] = column
-            self.return_scope.append(column['address'])
+            row = {'lexeme': input, 'address': self.data_pointer}
+            self.symbol_table[len(self.symbol_table)] = row
+            self.return_scope.append(row['address'])
             self.data_pointer += 4
             if input != "main":
                 self.pb[self.i+1] = ("JP",)
