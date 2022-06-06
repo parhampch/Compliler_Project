@@ -2,5 +2,6 @@
 # Parham Chavoshian 98100118
 from parser_compiler import Parser
 
-parser = Parser()
+st = dict()
+parser = Parser(st)
 parser.start()

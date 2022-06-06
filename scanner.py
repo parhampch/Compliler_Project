@@ -30,7 +30,7 @@ class DFA:
 
 
 class Scanner:
-    def __init__(self) -> None:
+    def __init__(self, st) -> None:
         self.initialize()
 
         self.start_state = 0
@@ -87,14 +87,24 @@ class Scanner:
         self.classes = {4: "NUMBER", 6: "keyword_token", 7: "SYMBOL", 10: "SYMBOL", 11: "whiteSpace", 16: "comment",
                         18: "comment", 21: "comment", 20: "Finish"}
 
-        self.errors = {17: "Invalid number",25: "Invalid number", 22: "Unmatched comment", 19: "Unclosed comment",
+        self.errors = {17: "Invalid number", 25: "Invalid number", 22: "Unmatched comment", 19: "Unclosed comment",
                        23: "Invalid input", 24: "Invalid input"}
 
         self.key_words = ["break", "continue", "def", "else", "if", "return", "while", "global"]
 
-        self.symbol_table = {1: {'lexeme': 'break'}, 2: {'lexeme': 'continue'}, 3: {'lexeme': 'def'},
-                             4: {'lexeme': 'else'}, 5: {'lexeme': 'if'},
-                             6: {'lexeme': 'return'}, 7: {'lexeme': 'while'}}
+        self.symbol_table = st
+
+        # self.symbol_table = {1: {'lexeme': 'break'}, 2: {'lexeme': 'continue'}, 3: {'lexeme': 'def'},
+        #                      4: {'lexeme': 'else'}, 5: {'lexeme': 'if'},
+        #                      6: {'lexeme': 'return'}, 7: {'lexeme': 'while'}}
+
+        self.symbol_table[1] = {'scope': 0, 'address': '', 'lexeme': 'break'}
+        self.symbol_table[2] = {'scope': 0, 'address': '', 'lexeme': 'continue'}
+        self.symbol_table[3] = {'scope': 0, 'address': '', 'lexeme': 'def'}
+        self.symbol_table[4] = {'scope': 0, 'address': '', 'lexeme': 'else'}
+        self.symbol_table[5] = {'scope': 0, 'address': '', 'lexeme': 'if'}
+        self.symbol_table[6] = {'scope': 0, 'address': '', 'lexeme': 'return'}
+        self.symbol_table[7] = {'scope': 0, 'address': '', 'lexeme': 'while'}
 
         self.symbol_code = len(self.symbol_table) + 1
 
@@ -166,7 +176,7 @@ class Scanner:
                     self.line_of_errors_has_text = False
                 self.token = ""
                 self.state = 0
-                if token_type.strip()!= "": return (token_type, token_lexeme, self.line_of_file)
+                if token_type.strip() != "": return (token_type, token_lexeme, self.line_of_file)
 
     def initialize(self, input_path: str = 'input.txt'):
         self.token = ""
@@ -187,10 +197,10 @@ class Scanner:
 
     def close(self):
         # if not self.has_error:
-            # self.errors_file.write('There is no lexical error.')
+        # self.errors_file.write('There is no lexical error.')
 
         # for key in self.symbol_table.keys():
-            # self.symbol_table_file.write("{}.\t{}\n".format(key, self.symbol_table[key]['lexeme']))
+        # self.symbol_table_file.write("{}.\t{}\n".format(key, self.symbol_table[key]['lexeme']))
         # self.errors_file.close()
         # self.tokens_file.close()
         # self.symbol_table_file.close()

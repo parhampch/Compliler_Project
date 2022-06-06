@@ -1,3 +1,4 @@
+from code_generator import code_generator
 from scanner import Scanner
 from anytree import Node, RenderTree
 
@@ -80,10 +81,11 @@ parsing_table = {
                  "**": "",
                  "NUM": "",
                  "$": "",
+                 "output": "output ( Expression \\print)"
                  },
     "Simple_stmt": {";": "synch",
-                 "break": "break",
-                 "continue": "continue",
+                 "break": "break \\break",
+                 "continue": "continue \\continue",
                  "ID": "Assignment_Call",
                  "=": "",
                  "[": "",
@@ -136,7 +138,7 @@ parsing_table = {
     "Assignment_Call": {";": "synch",
                  "break": "",
                  "continue": "",
-                 "ID": "ID B",
+                 "ID": "ID \\pid B",
                  "=": "",
                  "[": "",
                  "]": "",
@@ -163,10 +165,10 @@ parsing_table = {
                  "break": "",
                  "continue": "",
                  "ID": "",
-                 "=": "= C",
-                 "[": "[ Expression ] = C",
+                 "=": "= C \\assign",
+                 "[": "[ Expression ] = C \\assignArr",
                  "]": "",
-                 "(": "( Arguments )",
+                 "(": "( Arguments ) \\funcRes",
                  ")": "",
                  ",": "",
                  "return": "",
@@ -190,7 +192,7 @@ parsing_table = {
                  "continue": "",
                  "ID": "Expression",
                  "=": "",
-                 "[": "[ Expression List_Rest ]",
+                 "[": "[ \\start_list Expression \\append List_Rest ]",
                  "]": "",
                  "(": "",
                  ")": "",
@@ -217,10 +219,10 @@ parsing_table = {
                  "ID": "",
                  "=": "",
                  "[": "",
-                 "]": "epsilon",
+                 "]": "epsilon \\endList",
                  "(": "",
                  ")": "",
-                 ",": ", Expression List_Rest",
+                 ",": ", Expression \\append List_Rest",
                  "return": "",
                  "global": "",
                  "def": "",
@@ -247,7 +249,7 @@ parsing_table = {
                  "(": "",
                  ")": "",
                  ",": "",
-                 "return": "return Return_Value",
+                 "return": "return Return_Value \\return",
                  "global": "",
                  "def": "",
                  ":": "",
@@ -263,7 +265,7 @@ parsing_table = {
                  "NUM": "",
                  "$": "",
                  },
-    "Return_Value": {";": "epsilon",
+    "Return_Value": {";": "epsilon \\return_zero",
                  "break": "",
                  "continue": "",
                  "ID": "Expression",
@@ -300,7 +302,7 @@ parsing_table = {
                  ")": "",
                  ",": "",
                  "return": "",
-                 "global": "global ID",
+                 "global": "global ID \\pidGlobal",
                  "def": "",
                  ":": "",
                  "if": "",
@@ -327,7 +329,7 @@ parsing_table = {
                  ",": "",
                  "return": "",
                  "global": "",
-                 "def": "def ID ( Params ) : Statements",
+                 "def": "def ID \\func_def ( Params ) : Statements \\end_func",
                  ":": "",
                  "if": "",
                  "else": "",
@@ -344,7 +346,7 @@ parsing_table = {
     "Params": {";": "",
                  "break": "",
                  "continue": "",
-                 "ID": "ID Params_Prime",
+                 "ID": "ID \\param Params_Prime",
                  "=": "",
                  "[": "",
                  "]": "",
@@ -376,7 +378,7 @@ parsing_table = {
                  "]": "",
                  "(": "",
                  ")": "epsilon",
-                 ",": ", ID Params_Prime",
+                 ",": ", ID \\param Params_Prime",
                  "return": "",
                  "global": "",
                  "def": "",
@@ -474,7 +476,7 @@ parsing_table = {
     "Relational_Expression": {";": "",
                  "break": "",
                  "continue": "",
-                 "ID": "Expression Relop Expression",
+                 "ID": "Expression Relop Expression \\relationalExpression",
                  "=": "",
                  "[": "",
                  "]": "",
@@ -494,7 +496,7 @@ parsing_table = {
                  "-": "",
                  "*": "",
                  "**": "",
-                 "NUM": "Expression Relop Expression",
+                 "NUM": "Expression Relop Expression \\relationalExpression",
                  "$": "",
                  },
     "Relop": {";": "",
@@ -514,8 +516,8 @@ parsing_table = {
                  "if": "",
                  "else": "",
                  "while": "",
-                 "==": "==",
-                 "<": "<",
+                 "==": "== \\eRelop",
+                 "<": "< \\lRelop",
                  "+": "",
                  "-": "",
                  "*": "",
@@ -568,8 +570,8 @@ parsing_table = {
                  "while": "",
                  "==": "epsilon",
                  "<": "epsilon",
-                 "+": "+ Term Expression_Prime",
-                 "-": "- Term Expression_Prime",
+                 "+": "+ Term \\add Expression_Prime",
+                 "-": "- Term \\sub Expression_Prime",
                  "*": "",
                  "**": "",
                  "NUM": "",
@@ -622,7 +624,7 @@ parsing_table = {
                  "<": "epsilon",
                  "+": "epsilon",
                  "-": "epsilon",
-                 "*": "* Factor Term_Prime",
+                 "*": "* Factor \\mult Term_Prime",
                  "**": "",
                  "NUM": "",
                  "$": "",
@@ -675,7 +677,7 @@ parsing_table = {
                  "+": "Primary",
                  "-": "Primary",
                  "*": "Primary",
-                 "**": "** Factor",
+                 "**": "** Factor \\pow",
                  "NUM": "",
                  "$": "",
                  },
@@ -760,7 +762,7 @@ parsing_table = {
     "Atom": {";": "synch",
                  "break": "",
                  "continue": "",
-                 "ID": "ID",
+                 "ID": "ID \\pid",
                  "=": "",
                  "[": "synch",
                  "]": "synch",
@@ -780,32 +782,37 @@ parsing_table = {
                  "-": "synch",
                  "*": "synch",
                  "**": "synch",
-                 "NUM": "NUM",
+                 "NUM": "NUM \\pnum",
                  "$": "",
                  }
 }
 
 class Parser:
 
+    def __init__(self, st):
+        self.st = st
+
     def start(self):
         root, has_syntax_error = self.parse_program()
-        parse_tree_output = open("parse_tree.txt", "w", encoding="utf-8")
+        # parse_tree_output = open("parse_tree.txt", "w", encoding="utf-8")
         buffer = ''
         for pre, fill, node in RenderTree(root):
             buffer = buffer + "{:s}{:s}".format(pre, node.name) + "\n"
-        parse_tree_output.write(buffer)
-        parse_tree_output.close()
-        if not has_syntax_error:
-            self.syntax_error_output.write("There is no syntax error.")
-        self.syntax_error_output.close()
+        # parse_tree_output.write(buffer)
+        # parse_tree_output.close()
+        # if not has_syntax_error:
+            # self.syntax_error_output.write("There is no syntax error.")
+        # self.syntax_error_output.close()
 
 
     def parse_program(self):
-        self.syntax_error_output = open("syntax_errors.txt", "w", encoding="utf-8")
+        # self.syntax_error_output = open("syntax_errors.txt", "w", encoding="utf-8")
         has_syntax_error = False
         terminals = ["break", "continue", "def", "else", "if", "return", "while", "global", "[", "]", "(", ")",
                      "ID", "=", ";", ",", ":", "==", "<", "+", "-", "*", "**", "NUM", "$"]
-        sc = Scanner()
+        sc = Scanner(self.st)
+        cg = code_generator(self.st)
+        cg_input = ""
         stack = []
         root = Node("Program")
         stack.append(root)
@@ -822,17 +829,23 @@ class Parser:
             while True:
                 if (len(stack) == 0):
                     Node(name="$", parent=root)
+                    cg.dump()
                     return root, has_syntax_error
                 current_node = stack.pop()
                 current_sentential = current_node.name
+                if current_sentential[0] == "\\":
+                    cg.codegen(cg_input, current_sentential)
+                    continue
                 if current_sentential in terminals:
                     if effective_token == current_sentential:
                         current_node.name = "({:s}, {:s})".format(token_type, token_lexeme)
+                        cg_input = token_lexeme
                         break
                     else:
                         has_syntax_error = True
                         self.syntax_error_output.write("#{} : syntax error, missing {}\n".format(line_number, current_sentential))
                         current_node.parent = None
+                        cg_input = token_lexeme
                         continue
                 else:
                     next_tokens = parsing_table[current_sentential][effective_token].split(" ")
@@ -843,20 +856,27 @@ class Parser:
                             self.syntax_error_output.write("#{} : syntax error, Unexpected EOF\n".format(line_number))
                             for remaining_node in stack:
                                 remaining_node.parent = None
+                            cg.dump()
                             return root, has_syntax_error
                         has_syntax_error = True
                         stack.append(current_node)
                         self.syntax_error_output.write("#{} : syntax error, illegal {}\n".format(line_number, effective_token))
+                        cg_input = token_lexeme
                         break
                     elif "synch" in next_tokens:
                         has_syntax_error = True
                         self.syntax_error_output.write("#{} : syntax error, missing {}\n".format(line_number, current_sentential))
                         current_node.parent = None
+                        cg_input = token_lexeme
                         continue
                     new_nodes_list = []
-                    for name in next_tokens:
+                    for i in range (len(next_tokens)):
+                        name = next_tokens[i]
                         new_node = Node(name= name, parent=current_node)
                         new_nodes_list.append(new_node)
                     for node in reversed(new_nodes_list):
                         if node.name != "epsilon":
                             stack.append(node)
+                cg_input = token_lexeme
+        cg.dump()
+        print("nigga")
