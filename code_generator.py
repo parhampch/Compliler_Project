@@ -20,9 +20,9 @@ class code_generator:
         :param id: lexeme
         :return: row(if exists) and False (if does not)
         '''
-        for column in self.symbol_table:
-            if self.symbol_table[column]['lexeme'] == id:
-                return self.symbol_table[column]
+        for row in self.symbol_table:
+            if self.symbol_table[row]['lexeme'] == id:
+                return self.symbol_table[row]
         return False
 
     def gettemp(self):
@@ -40,84 +40,44 @@ class code_generator:
         searches symbol table for input. if no lexeme with that name exists, or one exists without an address, it will
         assign an address to it and return its row with format: ({'lexeme': 'x', 'address': '500'})
         '''
-        column = self.find_id(input)
-        if column == False:
-            column = {'lexeme': input, 'address': self.data_pointer}
-            self.symbol_table[len(self.symbol_table)] = column
+        row = self.find_id(input)
+        if row == False:
+            row = {'lexeme': input, 'address': self.data_pointer}
+            self.symbol_table[len(self.symbol_table)] = row
             self.data_pointer += 4
-        elif 'address' not in column:
-            column = {'lexeme': input, 'address': self.data_pointer}
-            self.symbol_table[len(self.symbol_table)] = column
+        elif 'address' not in row:
+            row = {'lexeme': input, 'address': self.data_pointer}
+            self.symbol_table[len(self.symbol_table)] = row
             self.data_pointer += 4
-        return column
+        return row
 
     def codegen(self, input, action):
         print("codegen executed with input: {} and action: {}".format(input, action))
         if action == "\\pid":
             if input in self.terminals:
                 return
-            column = self.get_symbol_table_row(input)
-            self.ss.append(column['address'])
+            row = self.get_symbol_table_row(input)
+            self.ss.append(row['address'])
         elif action == "\\add":
             t = self.gettemp()
-            self.pb[self.i] = ("+", self.ss.pop(), self.ss.pop(), t)
+            self.pb[self.i] = ("ADD", self.ss.pop(), self.ss.pop(), t)
             self.i += 1
+            self.ss.append(t)
             pass
         elif action == "\\mult":
             t = self.gettemp()
-            self.pb[self.i] = ("*", self.ss.pop(), self.ss.pop(), t)
-            self.i += 1
-            pass
-        elif action == "\\pnum":
-            self.ss.append("#" + input)
-        elif action == "\\assign":
-            R = self.ss.pop()
-            A = self.ss.pop()
-            self.pb[self.i] = ("ASSIGN", A, R, )
-            self.i += 1
-        elif action == "\\assignArr":
-            # arr id -> index -> new value
-            new_value = self.ss.pop()
-            index = self.ss.pop()
-            arr_id = self.ss.pop()
-            t = self.gettemp()
-            t2 = self.gettemp()
-            self.pb[self.i] = ("MULT", index, "#4", t)
-            self.pb[self.i + 1] = ("ADD", t, arr_id, t2)
-            self.pb[self.i + 2] = ("ASSIGN", new_value, t2)
-            self.i += 3
-            pass
-        elif action == "\\funcRes":
-
-            pass
-        elif action == "\\lRelop":
-            self.ss.append(1)
-        elif action == "\\eRelop":
-            self.ss.append(0)
-        elif action == "\\relational_expression":
-            rhs = self.ss.pop()
-            relop = self.ss.pop()
-            lhs = self.ss.pop()
-            if relop == "0": relop = "EQ"
-            elif relop == "1": relop = "LT"
-            t = self.gettemp()
-            self.pb[self.i] = (relop, lhs, rhs, t)
+            self.pb[self.i] = ("MULT", self.ss.pop(), self.ss.pop(), t)
             self.i += 1
             self.ss.append(t)
-        elif action == "\\add":
-            rhs = self.ss.pop()
-            lhs = self.ss.pop()
-            t = self.gettemp()
-            self.pb[self.i] = ("ADD", lhs, rhs, t)
-            self.i += 1
-            self.ss.append(t)
+            pass
         elif action == "\\sub":
+            t = self.gettemp()
             rhs = self.ss.pop()
             lhs = self.ss.pop()
-            t = self.gettemp()
             self.pb[self.i] = ("SUB", lhs, rhs, t)
             self.i += 1
             self.ss.append(t)
+            pass
         elif action == "\\pow":
             exponent = self.ss.pop()
             base = self.ss.pop()
@@ -131,6 +91,35 @@ class code_generator:
             self.pb[self.i+5] = ("JP", self.i+2)
             self.i += 6
             self.ss.append(t)
+        elif action == "\\pnum":
+            self.ss.append("#" + input)
+        elif action == "\\assign":
+            R = self.ss.pop()
+            A = self.ss.pop()
+            self.pb[self.i] = ("ASSIGN", R, A)
+            self.i += 1
+
+        # todo
+        elif action == "\\assignArr":
+            # arr id -> index -> new value
+            new_value = self.ss.pop()
+            index = self.ss.pop()
+            arr_id = self.ss.pop()
+            t = self.gettemp()
+            t2 = self.gettemp()
+            self.pb[self.i] = ("MULT", index, "#4", t)
+            self.pb[self.i + 1] = ("ADD", t, arr_id, t2)
+            self.pb[self.i + 2] = ("ASSIGN", new_value, "@{}".format(t2))
+            self.i += 3
+            pass
+        elif action == "\\funcRes":
+
+            pass
+        elif action == "\\lRelop":
+            self.ss.append(1)
+        elif action == "\\eRelop":
+            self.ss.append(0)
+
         elif action == "\\relationalExpression":
             op2 = self.ss.pop()
             op = self.ss.pop()
@@ -145,8 +134,8 @@ class code_generator:
             self.ss.append(dest)
         elif action == "\\param":
             self.pb[self.i] = ("ASSIGN", "#0", self.data_pointer)
-            column = self.get_symbol_table_row(input)
-            # self.ss.append(column['address'])
+            row = self.get_symbol_table_row(input)
+            # self.ss.append(row['address'])
             self.i += 1
             self.data_pointer += 4
             pass
@@ -173,6 +162,8 @@ class code_generator:
             self.i += 1
 
         elif action == "\\save":
+            boolean_result = self.ss[-1]
+            self.pb[self.i] = ("JPF", boolean_result, "X")
             self.ss.append(self.i)
             self.i += 1
 
@@ -193,9 +184,9 @@ class code_generator:
 
         elif action == "\\func_def":
             self.pb[self.i] = ("ASSIGN", "#0", self.data_pointer)
-            column = {'lexeme': input, 'address': self.data_pointer}
-            self.symbol_table[len(self.symbol_table)] = column
-            self.return_scope.append(column['address'])
+            row = {'lexeme': input, 'address': self.data_pointer}
+            self.symbol_table[len(self.symbol_table)] = row
+            self.return_scope.append(row['address'])
             self.data_pointer += 4
             if input != "main":
                 self.pb[self.i+1] = ("JP",)
@@ -212,19 +203,45 @@ class code_generator:
                 pass
             self.i += 1
         elif action == "\\start_list":
-            self.ss.append(self.i + 1)
-            self.ss.append(self.data_pointer)
-            self.i += 1
+            # self.ss.append(self.i)
+            # self.i += 1
+            pass
         elif action == "\\append":
-            self.pb[self.i] = ("ASSIGN", "#" + str(input), self.data_pointer)
+            num = self.ss.pop()
+            self.pb[self.i] = ("ASSIGN",num , self.data_pointer)
             self.data_pointer += 4
+            self.i += 1
         elif action == "\\endList":
-            self.pb[self.ss[-1]] = ("ASSIGN", "#" + str(self.ss[-2]), self.data_pointer)
-            self.data_pointer += 4
-            self.ss.pop()
-            self.ss.pop()
+            define_address = self.ss.pop()
+            first_element_address = define_address + 4
+            start_address = "#{}".format(first_element_address)
+            self.ss.append(define_address)
+            self.ss.append(start_address)
+            # self.data_pointer += 4
         elif action == "\\while_label":
             self.ss.append(self.i)
+        elif action == "\\calculate_primary":
+
+            '''
+            this will calculate an array's element location 
+            var1 = arr[arr[1] - 1];
+            will result in 
+            ('MULT', '#4', '#1', '1000')
+            ('ADD', '1000', 500, '1000')
+            ('SUB', '@1000', '#1', '1004')
+            ('MULT', '#4', '1004', '1008')
+            ('ADD', '1008', 500, '1008')
+            ('ASSIGN', '@1008', 516)
+            '''
+
+            t = self.gettemp()
+            index = self.ss.pop()
+            arr = self.ss.pop()
+            self.pb[self.i] = ("MULT", "#4", index, t)
+            self.pb[self.i+1] = ("ADD", t, arr, t)
+            self.ss.append("@{}".format(t))
+            self.i += 2
+            pass
         elif action == "\\while_save":
             self.ss.append(self.i)
             self.i = self.i + 1
@@ -237,6 +254,18 @@ class code_generator:
             self.ss.pop()
         elif action == "\\end_func":
             self.return_scope.pop()
+
+        elif action == "\\while":
+            a = self.ss.pop()
+            b = self.ss.pop()
+            c = self.ss.pop()
+            self.pb[a] = ("JPF", b, self.i+1)
+            self.pb[self.i] = ("JP", c)
+            self.i += 1
+            pass
+        elif action == "\\label":
+            self.ss.append(self.i)
+            pass
         else:
             print('\033[91m' + "unknown semantic action: :{}".format(action) +  '\033[0m')
 

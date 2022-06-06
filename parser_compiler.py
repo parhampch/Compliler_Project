@@ -463,7 +463,7 @@ parsing_table = {
                  ":": "",
                  "if": "",
                  "else": "",
-                 "while": "while ( Relational_Expression ) Statements",
+                 "while": "while \\label ( Relational_Expression ) \\save Statements \\while",
                  "==": "",
                  "<": "",
                  "+": "",
@@ -686,7 +686,7 @@ parsing_table = {
                  "continue": "",
                  "ID": "",
                  "=": "",
-                 "[": "[ Expression ] Primary",
+                 "[": "[ Expression \\calculate_primary ] Primary",
                  "]": "epsilon",
                  "(": "( Arguments ) Primary",
                  ")": "epsilon",
@@ -794,12 +794,12 @@ class Parser:
 
     def start(self):
         root, has_syntax_error = self.parse_program()
-        # parse_tree_output = open("parse_tree.txt", "w", encoding="utf-8")
+        parse_tree_output = open("parse_tree.txt", "w", encoding="utf-8")
         buffer = ''
         for pre, fill, node in RenderTree(root):
             buffer = buffer + "{:s}{:s}".format(pre, node.name) + "\n"
-        # parse_tree_output.write(buffer)
-        # parse_tree_output.close()
+        parse_tree_output.write(buffer)
+        parse_tree_output.close()
         # if not has_syntax_error:
             # self.syntax_error_output.write("There is no syntax error.")
         # self.syntax_error_output.close()
