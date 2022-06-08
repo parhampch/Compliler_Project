@@ -794,19 +794,19 @@ class Parser:
 
     def start(self):
         root, has_syntax_error = self.parse_program()
-        parse_tree_output = open("parse_tree.txt", "w", encoding="utf-8")
+        # parse_tree_output = open("parse_tree.txt", "w", encoding="utf-8")
         buffer = ''
         for pre, fill, node in RenderTree(root):
             buffer = buffer + "{:s}{:s}".format(pre, node.name) + "\n"
-        parse_tree_output.write(buffer)
-        parse_tree_output.close()
-        # if not has_syntax_error:
-            # self.syntax_error_output.write("There is no syntax error.")
-        # self.syntax_error_output.close()
+        # parse_tree_output.write(buffer)
+        # parse_tree_output.close()
+        if not has_syntax_error:
+            self.syntax_error_output.write("There is no syntax error.")
+        self.syntax_error_output.close()
 
 
     def parse_program(self):
-        # self.syntax_error_output = open("syntax_errors.txt", "w", encoding="utf-8")
+        self.syntax_error_output = open("syntax_errors.txt", "w", encoding="utf-8")
         has_syntax_error = False
         terminals = ["break", "continue", "def", "else", "if", "return", "while", "global", "[", "]", "(", ")",
                      "ID", "=", ";", ",", ":", "==", "<", "+", "-", "*", "**", "NUM", "$"]
@@ -879,4 +879,3 @@ class Parser:
                             stack.append(node)
                 cg_input = token_lexeme
         cg.dump()
-        print("nigga")
