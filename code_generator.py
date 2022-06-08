@@ -99,7 +99,6 @@ class code_generator:
             self.pb[self.i] = ("ASSIGN", R, A)
             self.i += 1
 
-        # todo
         elif action == "\\assignArr":
             # arr id -> index -> new value
             new_value = self.ss.pop()
@@ -113,8 +112,7 @@ class code_generator:
             self.i += 3
             pass
         elif action == "\\funcRes":
-
-            pass
+            print('\033[91m' + "semantic action not implemented: :{}".format(action) + '\033[0m')
         elif action == "\\lRelop":
             self.ss.append(1)
         elif action == "\\eRelop":
@@ -135,10 +133,7 @@ class code_generator:
         elif action == "\\param":
             self.pb[self.i] = ("ASSIGN", "#0", self.data_pointer)
             row = self.get_symbol_table_row(input)
-            # self.ss.append(row['address'])
             self.i += 1
-            self.data_pointer += 4
-            pass
         elif action == "\\return":
 
             '''return value is at the top of the stack.
