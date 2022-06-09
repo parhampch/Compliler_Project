@@ -329,7 +329,7 @@ parsing_table = {
                  ",": "",
                  "return": "",
                  "global": "",
-                 "def": "def ID \\func_def ( Params ) : Statements \\end_func",
+                 "def": "def ID \\func_def ( Params ) : \\func_line Statements \\end_func",
                  ":": "",
                  "if": "",
                  "else": "",

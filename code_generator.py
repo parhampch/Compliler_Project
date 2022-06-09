@@ -184,7 +184,7 @@ class code_generator:
 
         elif action == "\\func_def":
             self.pb[self.i] = ("ASSIGN", "#0", self.data_pointer)
-            row = {'lexeme': input, 'address': self.data_pointer}
+            row = {'lexeme': input, 'address': self.data_pointer, 'type': 'func'}
             self.symbol_table[len(self.symbol_table)] = row
             self.return_scope.append(row['address'])
             self.data_pointer += 4
@@ -266,6 +266,8 @@ class code_generator:
         elif action == "\\label":
             self.ss.append(self.i)
             pass
+        elif action == "\\func_line":
+            
         else:
             print('\033[91m' + "unknown semantic action: :{}".format(action) +  '\033[0m')
 
