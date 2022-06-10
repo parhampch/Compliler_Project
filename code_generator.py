@@ -273,7 +273,7 @@ class code_generator:
             pass
         elif action == "\\func_line":
             func_row = self.get_symbol_table_row(self.current_func)
-            func_row['start_line'] = i
+            func_row['start_line'] = self.i
             self.current_func = None
         elif action == "\\argument":
             argument = self.ss[-1]
@@ -295,6 +295,7 @@ class code_generator:
             self.i += 1
             self.pb[self.i] = ("JP", self.symbol_table[func_row]['start_line'])
             self.i += 1
+            self.ss.append(func_address + 4)
 
 
             

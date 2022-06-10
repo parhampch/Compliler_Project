@@ -687,7 +687,7 @@ parsing_table = {
                  "=": "",
                  "[": "[ Expression \\calculate_primary ] Primary",
                  "]": "epsilon",
-                 "(": "( \\func_call Arguments \\func_call ) Primary",
+                 "(": "( Arguments \\func_call ) Primary",
                  ")": "epsilon",
                  ",": "epsilon",
                  "return": "",
