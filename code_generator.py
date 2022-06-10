@@ -34,6 +34,12 @@ class code_generator:
     def add_instruction(self, instruction, option):
         self.pb[self.i] = instruction
         self.i+= 1
+    
+    def get_row_by_address(self, address):
+        for row in self.symbol_table:
+            if self.symbol_table[row]['address'] == address:
+                return row
+        return -1
 
 
     def get_symbol_table_row(self, input):
@@ -276,6 +282,21 @@ class code_generator:
             self.ss.pop()
             self.ss.append(argument)
             self.ss.append(func_name)
+        elif action == "\\func_call":
+            func_address = self.ss[-1]
+            self.ss.pop()
+            func_row = self.get_row_by_address(func_address)
+            arg_address = func_address + 8 + self.symbol_table[func_row]['num'] * 4
+            for _ in range(self.symbol_table[func_row]['num']):
+                self.pb[self.i] = ("ASSIGN",self.ss.pop() , arg_address)
+                arg_address -= 4
+                self.i += 1
+            self.pb[self.i] = ("ASSIGN",self.i + 2 , func_address + 8)
+            self.i += 1
+            self.pb[self.i] = ("JP", self.symbol_table[func_row]['start_line'])
+            self.i += 1
+
+
             
         else:
             print('\033[91m' + "unknown semantic action: :{}".format(action) +  '\033[0m')
