@@ -321,8 +321,15 @@ class code_generator:
         output = open('output.txt', 'w')
         for key in range(len(self.pb)):
             output.write("{}\t(".format(key))
+            counter = 0
             for element in self.pb[key]:
-                output.write("{}, ".format(element))
+                output.write("{}".format(element))
+                counter += 1
+                if counter != 4:
+                    output.write(", ")
+            while counter < 3 :
+                output.write(", ")
+                counter += 1
             output.write(")\n")
         output.close()
 
