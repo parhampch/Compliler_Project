@@ -200,8 +200,6 @@ class code_generator:
             self.pb[self.i] = ("JPF", boolean_result, "X")
             self.ss.append(self.i)
             self.i += 1
-            self.while_scope_continue.append(list())
-            self.while_scope_break.append(list())
 
         elif action == "\\jpf_save":
             address = self.ss.pop()
@@ -304,19 +302,21 @@ class code_generator:
             c = self.ss.pop()
             self.pb[a] = ("JPF", b, self.i+1)
             self.pb[self.i] = ("JP", c)
-            self.i += 1
 
             break_list = self.while_scope_break.pop()
             for break_address in break_list:
-                self.pb[break_address] = ("JP", c)
+                self.pb[break_address] = ("JP", self.i+1)
 
             continue_list = self.while_scope_continue.pop()
             for continue_address in continue_list:
-                self.pb[continue_address] = ("JP", a)
+                self.pb[continue_address] = ("JP", c)
 
+            self.i += 1
             pass
         elif action == "\\label":
             self.ss.append(self.i)
+            self.while_scope_continue.append(list())
+            self.while_scope_break.append(list())
             pass
         elif action == "\\func_line":
             func_row = self.get_symbol_table_row(self.current_func)
@@ -366,10 +366,10 @@ class code_generator:
             self.ss.append("{}".format(func_address + 4))
 
         elif action == "\\break":
-            self.while_scope_break[len(self.while_scope) - 1].append(self.i)
+            self.while_scope_break[len(self.while_scope_break) - 1].append(self.i)
             self.i += 1
         elif action == "\\continue":
-            self.while_scope_continue[len(self.while_scope) - 1].append(self.i)
+            self.while_scope_continue[len(self.while_scope_continue) - 1].append(self.i)
             self.i += 1
             pass
 

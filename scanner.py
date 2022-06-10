@@ -145,7 +145,8 @@ class Scanner:
             token_type, token_lexeme = "", ""
             if self.state.is_final:
                 # print(self.token)
-                if "recursive sample" in self.token or "Recursive Sample" in self.token or "# === sample 9 ====" in self.token:
+                if "recursive sample" in self.token or "Recursive Sample" in self.token:
+                    #  or "# === sample 9 ====" in self.token
                     0/0
                 if self.state.has_star:
                     self.cached = self.token[-1]
