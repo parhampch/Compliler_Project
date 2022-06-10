@@ -709,7 +709,7 @@ parsing_table = {
     "Arguments": {";": "",
                  "break": "",
                  "continue": "",
-                 "ID": "Expression Arguments_Prime",
+                 "ID": "Expression \\argument Arguments_Prime",
                  "=": "",
                  "[": "",
                  "]": "",

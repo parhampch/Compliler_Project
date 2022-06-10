@@ -269,6 +269,14 @@ class code_generator:
             func_row = self.get_symbol_table_row(self.current_func)
             func_row['start_line'] = i
             self.current_func = None
+        elif action == "\\argument":
+            argument = self.ss[-1]
+            func_name = self.ss[-2]
+            self.ss.pop()
+            self.ss.pop()
+            self.ss.append(argument)
+            self.ss.append(func_name)
+            
         else:
             print('\033[91m' + "unknown semantic action: :{}".format(action) +  '\033[0m')
 
