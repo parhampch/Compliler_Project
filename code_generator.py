@@ -13,6 +13,8 @@ class code_generator:
         self.return_scope = list()
         self.current_func = None
         self.scope = 0
+        self.while_scope_continue = list()
+        self.while_scope_break = list()
     pass
 
 
@@ -62,7 +64,16 @@ class code_generator:
         return row
 
     def codegen(self, input, action):
+        # if self.i > 20:
+        #     print("here")
+        #     print("here")
+        #     print("here")
+        #     pass
         print("codegen executed with input: {} and action: {}".format(input, action))
+        if self.i > 9:
+            # print("here")
+            # print("here")
+            pass
         if action == "\\pid":
             if input in self.terminals:
                 return
@@ -129,8 +140,18 @@ class code_generator:
             print('\033[91m' + "semantic action not implemented: :{}".format(action) + '\033[0m')
             pass
         elif action == "\\lRelop":
+            temp = self.gettemp()
+            value = self.ss.pop()
+            self.pb[self.i] = ("ASSIGN", value, temp)
+            self.i += 1
+            self.ss.append(temp)
             self.ss.append(1)
         elif action == "\\eRelop":
+            temp = self.gettemp()
+            value = self.ss.pop()
+            self.pb[self.i] = ("ASSIGN", value, temp)
+            self.i += 1
+            self.ss.append(temp)
             self.ss.append(0)
 
         elif action == "\\relationalExpression":
@@ -165,19 +186,22 @@ class code_generator:
             self.pb[self.i] = ("ASSIGN", value, return_value_address)
             self.pb[self.i+1] = ("JP", return_address_pointer)
             self.i += 2
+            # self.ss.append("{}".format(function_pointer + 4))
 
         elif action == "\\return_zero":
-
             function_pointer = int(self.return_scope[-1])
             return_address_pointer = "@{}".format(function_pointer + 8)
             self.pb[self.i] = ("JP", return_address_pointer)
             self.i += 1
+            # self.ss.pop()
 
         elif action == "\\save":
             boolean_result = self.ss[-1]
             self.pb[self.i] = ("JPF", boolean_result, "X")
             self.ss.append(self.i)
             self.i += 1
+            self.while_scope_continue.append(list())
+            self.while_scope_break.append(list())
 
         elif action == "\\jpf_save":
             address = self.ss.pop()
@@ -281,6 +305,15 @@ class code_generator:
             self.pb[a] = ("JPF", b, self.i+1)
             self.pb[self.i] = ("JP", c)
             self.i += 1
+
+            break_list = self.while_scope_break.pop()
+            for break_address in break_list:
+                self.pb[break_address] = ("JP", c)
+
+            continue_list = self.while_scope_continue.pop()
+            for continue_address in continue_list:
+                self.pb[continue_address] = ("JP", a)
+
             pass
         elif action == "\\label":
             self.ss.append(self.i)
@@ -312,8 +345,33 @@ class code_generator:
             self.i += 1
             self.pb[self.i] = ("JP", self.symbol_table[func_row]['start_line'])
             self.i += 1
-            self.ss.append(func_address + 4)
+            # self.ss.append("{}".format(func_address + 4))
 
+        elif action == "\\func_call_primary":
+            func_address = self.ss.pop()
+            func_row = self.get_row_by_address(func_address)
+            if self.symbol_table[func_row]['lexeme'] == 'output':
+                self.pb[self.i] = ("PRINT", self.ss.pop())
+                self.i += 1
+                return
+            arg_address = func_address + 8 + self.symbol_table[func_row]['num'] * 4
+            for _ in range(self.symbol_table[func_row]['num']):
+                self.pb[self.i] = ("ASSIGN",self.ss.pop() , arg_address)
+                arg_address -= 4
+                self.i += 1
+            self.pb[self.i] = ("ASSIGN","#{}".format(self.i + 2) , func_address + 8)
+            self.i += 1
+            self.pb[self.i] = ("JP", self.symbol_table[func_row]['start_line'])
+            self.i += 1
+            self.ss.append("{}".format(func_address + 4))
+
+        elif action == "\\break":
+            self.while_scope_break[len(self.while_scope) - 1].append(self.i)
+            self.i += 1
+        elif action == "\\continue":
+            self.while_scope_continue[len(self.while_scope) - 1].append(self.i)
+            self.i += 1
+            pass
 
             
         else:
