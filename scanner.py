@@ -163,7 +163,10 @@ class Scanner:
                             token_type, token_lexeme = 'ID', self.token
                             # self.tokens_file.write("({}, {}) ".format(token_type, token_lexeme))
                             for symbol in self.symbol_table.values():
-                                if self.token == symbol['lexeme']: break
+                                if self.token == symbol['lexeme']:
+                                    if 'scope' in symbol:
+                                        if symbol['scope'] != -1:
+                                            break
                             else:  # if the token was not in file before, adds it.
                                 self.symbol_table[self.symbol_code] = {'lexeme': self.token}
                                 self.symbol_code += 1

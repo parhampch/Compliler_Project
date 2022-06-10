@@ -35,14 +35,13 @@ class code_generator:
         self.temporary_pointer += 4
         return value
 
-    def add_instruction(self, instruction, option):
-        self.pb[self.i] = instruction
-        self.i+= 1
     
     def get_row_by_address(self, address):
         for row in self.symbol_table:
             if self.symbol_table[row]['address'] == address:
-                return row
+                # todo: does it always have a scope?
+                if self.symbol_table[row]['scope'] != -1:
+                    return row
         return -1
 
 
@@ -53,11 +52,11 @@ class code_generator:
         '''
         row = self.find_id(input)
         if row == False:
-            row = {'lexeme': input, 'address': self.data_pointer}
-            self.symbol_table[len(self.symbol_table)] = row
+            row = {'lexeme': input, 'address': self.data_pointer, 'scope': self.scope}
+            self.symbol_table[len(self.symbol_table) + 1] = row
             self.data_pointer += 4
         elif 'address' not in row:
-            row = {'lexeme': input, 'address': self.data_pointer}
+            row = {'lexeme': input, 'address': self.data_pointer, 'scope': self.scope}
             self.symbol_table[len(self.symbol_table)] = row
             self.data_pointer += 4
         return row
@@ -269,6 +268,11 @@ class code_generator:
             self.ss.pop()
         elif action == "\\end_func":
             self.return_scope.pop()
+            for row in self.symbol_table:
+                if 'scope' in self.symbol_table[row]:
+                    if self.symbol_table[row]['scope'] == self.scope:
+                        self.symbol_table[row]['scope'] = -1
+            self.scope -=1
 
         elif action == "\\while":
             a = self.ss.pop()
