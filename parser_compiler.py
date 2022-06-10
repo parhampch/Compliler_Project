@@ -741,7 +741,7 @@ parsing_table = {
                  "]": "",
                  "(": "",
                  ")": "epsilon",
-                 ",": ", Expression Arguments_Prime",
+                 ",": ", Expression \\argument Arguments_Prime",
                  "return": "",
                  "global": "",
                  "def": "",
