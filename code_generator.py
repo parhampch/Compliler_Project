@@ -99,7 +99,11 @@ class code_generator:
             self.i += 6
             self.ss.append(t)
         elif action == "\\pnum":
-            self.ss.append("#" + input)
+            # self.ss.append("#" + input)
+            temp = self.gettemp()
+            self.pb[self.i] = ("ASSIGN", "#" + input, temp)
+            self.ss.append(temp)
+            self.i += 1
         elif action == "\\assign":
             R = self.ss.pop()
             A = self.ss.pop()
@@ -120,6 +124,7 @@ class code_generator:
             pass
         elif action == "\\funcRes":
             print('\033[91m' + "semantic action not implemented: :{}".format(action) + '\033[0m')
+            pass
         elif action == "\\lRelop":
             self.ss.append(1)
         elif action == "\\eRelop":
