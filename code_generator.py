@@ -266,7 +266,7 @@ class code_generator:
             self.ss.append(self.i)
             pass
         elif action == "\\func_line":
-            func_row = self.get_symbol_table_row(input)
+            func_row = self.get_symbol_table_row(self.current_func)
             func_row['start_line'] = i
             self.current_func = None
         else:
