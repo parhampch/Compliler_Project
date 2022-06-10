@@ -80,8 +80,7 @@ parsing_table = {
                  "*": "",
                  "**": "",
                  "NUM": "",
-                 "$": "",
-                 "output": "output ( Expression \\print)"
+                 "$": ""
                  },
     "Simple_stmt": {";": "synch",
                  "break": "break \\break",
@@ -688,7 +687,7 @@ parsing_table = {
                  "=": "",
                  "[": "[ Expression \\calculate_primary ] Primary",
                  "]": "epsilon",
-                 "(": "( Arguments ) Primary",
+                 "(": "( \\func_call Arguments ) Primary",
                  ")": "epsilon",
                  ",": "epsilon",
                  "return": "",
