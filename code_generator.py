@@ -12,6 +12,7 @@ class code_generator:
         self.incomplete_funcs = list()
         self.return_scope = list()
         self.current_func = None
+        self.scope = 0
     pass
 
 
@@ -23,6 +24,9 @@ class code_generator:
         '''
         for row in self.symbol_table:
             if self.symbol_table[row]['lexeme'] == id:
+                if 'scope' in self.symbol_table[row]:
+                    if self.symbol_table[row]['scope'] == -1:
+                        continue
                 return self.symbol_table[row]
         return False
 
@@ -193,7 +197,7 @@ class code_generator:
 
         elif action == "\\func_def":
             self.pb[self.i] = ("ASSIGN", "#0", self.data_pointer)
-            row = {'lexeme': input, 'address': self.data_pointer, 'type': 'func', 'num': 0}
+            row = {'lexeme': input, 'address': self.data_pointer, 'type': 'func', 'num': 0, 'scope': self.scope}
             self.current_func = input
             self.symbol_table[len(self.symbol_table)] = row
             self.return_scope.append(row['address'])
@@ -211,6 +215,7 @@ class code_generator:
                     JP_address = self.incomplete_funcs.pop()
                     self.pb[JP_address] = ("JP", self.i+1)
                 pass
+            self.scope += 1
             self.i += 1
         elif action == "\\start_list":
             # self.ss.append(self.i)

@@ -144,6 +144,8 @@ class Scanner:
                 continue
             token_type, token_lexeme = "", ""
             if self.state.is_final:
+                if "recursive sample" in self.token or "Recursive Sample" in self.token:
+                    0/0
                 if self.state.has_star:
                     self.cached = self.token[-1]
                     self.is_cache = True
