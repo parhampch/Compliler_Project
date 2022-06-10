@@ -5,7 +5,7 @@ class code_generator:
         self.ss = list()
         self.pb = dict()
         self.i = 0
-        self.data_pointer = 500
+        self.data_pointer = 504
         self.temporary_pointer = 1000
         self.terminals = ["break", "continue", "def", "else", "if", "return", "while", "global", "[", "]", "(", ")",
                      "ID", "=", ";", ",", ":", "==", "<", "+", "-", "*", "**", "NUM", "$"]
@@ -283,9 +283,12 @@ class code_generator:
             self.ss.append(argument)
             self.ss.append(func_name)
         elif action == "\\func_call":
-            func_address = self.ss[-1]
-            self.ss.pop()
+            func_address = self.ss.pop()
             func_row = self.get_row_by_address(func_address)
+            if self.symbol_table[func_row]['lexeme'] == 'output':
+                self.pb[self.i] = ("PRINT", self.ss.pop())
+                self.i += 1
+                return
             arg_address = func_address + 8 + self.symbol_table[func_row]['num'] * 4
             for _ in range(self.symbol_table[func_row]['num']):
                 self.pb[self.i] = ("ASSIGN",self.ss.pop() , arg_address)
@@ -312,7 +315,10 @@ class code_generator:
         '''
         output = open('output.txt', 'w')
         for key in range(len(self.pb)):
-            output.write("{}\t{}\n".format(key, self.pb[key]))
+            output.write("{}\t(".format(key))
+            for element in self.pb[key]:
+                output.write("{}, ".format(element))
+            output.write(")\n")
         output.close()
 
 
