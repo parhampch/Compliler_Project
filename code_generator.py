@@ -8,15 +8,15 @@ class code_generator:
         self.data_pointer = 504
         self.temporary_pointer = 1000
         self.terminals = ["break", "continue", "def", "else", "if", "return", "while", "global", "[", "]", "(", ")",
-                     "ID", "=", ";", ",", ":", "==", "<", "+", "-", "*", "**", "NUM", "$"]
+                          "ID", "=", ";", ",", ":", "==", "<", "+", "-", "*", "**", "NUM", "$"]
         self.incomplete_funcs = list()
         self.return_scope = list()
         self.current_func = None
         self.scope = 0
         self.while_scope_continue = list()
         self.while_scope_break = list()
-    pass
 
+    pass
 
     def find_id(self, id):
         '''
@@ -37,7 +37,6 @@ class code_generator:
         self.temporary_pointer += 4
         return value
 
-    
     def get_row_by_address(self, address):
         for row in self.symbol_table:
             if self.symbol_table[row]['address'] == address:
@@ -45,7 +44,6 @@ class code_generator:
                 if self.symbol_table[row]['scope'] != -1:
                     return row
         return -1
-
 
     def get_symbol_table_row(self, input):
         '''
@@ -105,11 +103,11 @@ class code_generator:
             t = self.gettemp()
             t2 = self.gettemp()
             self.pb[self.i] = ("ASSIGN", "#1", t)
-            self.pb[self.i+1] = ("ASSIGN", exponent, t2)
-            self.pb[self.i+2] = ("JPF", t2, self.i+6)
-            self.pb[self.i+3] = ("MULT", t, base, t)
-            self.pb[self.i+4] = ("SUB", t2, "#1", t2)
-            self.pb[self.i+5] = ("JP", self.i+2)
+            self.pb[self.i + 1] = ("ASSIGN", exponent, t2)
+            self.pb[self.i + 2] = ("JPF", t2, self.i + 6)
+            self.pb[self.i + 3] = ("MULT", t, base, t)
+            self.pb[self.i + 4] = ("SUB", t2, "#1", t2)
+            self.pb[self.i + 5] = ("JP", self.i + 2)
             self.i += 6
             self.ss.append(t)
         elif action == "\\pnum":
@@ -184,7 +182,7 @@ class code_generator:
             return_value_address = "{}".format(function_pointer + 4)
             return_address_pointer = "@{}".format(function_pointer + 8)
             self.pb[self.i] = ("ASSIGN", value, return_value_address)
-            self.pb[self.i+1] = ("JP", return_address_pointer)
+            self.pb[self.i + 1] = ("JP", return_address_pointer)
             self.i += 2
             # self.ss.append("{}".format(function_pointer + 4))
 
@@ -204,9 +202,9 @@ class code_generator:
         elif action == "\\jpf_save":
             address = self.ss.pop()
             address2 = self.ss.pop()
-            self.pb[address] = ("JPF", address2, self.i+1)
+            self.pb[address] = ("JPF", address2, self.i + 1)
             self.ss.append(self.i)
-            self.i+= 1
+            self.i += 1
 
         elif action == "\\jp":
             self.pb[self.ss.pop()] = ("JP", self.i)
@@ -224,17 +222,17 @@ class code_generator:
             self.return_scope.append(row['address'])
             self.data_pointer += 4
             if input != "main":
-                self.pb[self.i+1] = ("JP",)
-                self.pb[self.i+2] = ("ASSIGN", "#0", self.data_pointer) # return value.
-                self.pb[self.i+3] = ("ASSIGN", "#0", self.data_pointer + 4) # return address.
-                self.incomplete_funcs.append(self.i+1)
+                self.pb[self.i + 1] = ("JP",)
+                self.pb[self.i + 2] = ("ASSIGN", "#0", self.data_pointer)  # return value.
+                self.pb[self.i + 3] = ("ASSIGN", "#0", self.data_pointer + 4)  # return address.
+                self.incomplete_funcs.append(self.i + 1)
                 self.i += 3
                 self.data_pointer += 8
             else:
                 # fill all the previous JPs
-                while(len(self.incomplete_funcs) > 0):
+                while (len(self.incomplete_funcs) > 0):
                     JP_address = self.incomplete_funcs.pop()
-                    self.pb[JP_address] = ("JP", self.i+1)
+                    self.pb[JP_address] = ("JP", self.i + 1)
                 pass
             self.scope += 1
             self.i += 1
@@ -244,7 +242,7 @@ class code_generator:
             pass
         elif action == "\\append":
             num = self.ss.pop()
-            self.pb[self.i] = ("ASSIGN",num , self.data_pointer)
+            self.pb[self.i] = ("ASSIGN", num, self.data_pointer)
             self.data_pointer += 4
             self.i += 1
         elif action == "\\endList":
@@ -274,7 +272,7 @@ class code_generator:
             index = self.ss.pop()
             arr = self.ss.pop()
             self.pb[self.i] = ("MULT", "#4", index, t)
-            self.pb[self.i+1] = ("ADD", t, arr, t)
+            self.pb[self.i + 1] = ("ADD", t, arr, t)
             self.ss.append("@{}".format(t))
             self.i += 2
             pass
@@ -294,18 +292,18 @@ class code_generator:
                 if 'scope' in self.symbol_table[row]:
                     if self.symbol_table[row]['scope'] == self.scope:
                         self.symbol_table[row]['scope'] = -1
-            self.scope -=1
+            self.scope -= 1
 
         elif action == "\\while":
             a = self.ss.pop()
             b = self.ss.pop()
             c = self.ss.pop()
-            self.pb[a] = ("JPF", b, self.i+1)
+            self.pb[a] = ("JPF", b, self.i + 1)
             self.pb[self.i] = ("JP", c)
 
             break_list = self.while_scope_break.pop()
             for break_address in break_list:
-                self.pb[break_address] = ("JP", self.i+1)
+                self.pb[break_address] = ("JP", self.i + 1)
 
             continue_list = self.while_scope_continue.pop()
             for continue_address in continue_list:
@@ -338,10 +336,10 @@ class code_generator:
                 return
             arg_address = func_address + 8 + self.symbol_table[func_row]['num'] * 4
             for _ in range(self.symbol_table[func_row]['num']):
-                self.pb[self.i] = ("ASSIGN",self.ss.pop() , arg_address)
+                self.pb[self.i] = ("ASSIGN", self.ss.pop(), arg_address)
                 arg_address -= 4
                 self.i += 1
-            self.pb[self.i] = ("ASSIGN","#{}".format(self.i + 2) , func_address + 8)
+            self.pb[self.i] = ("ASSIGN", "#{}".format(self.i + 2), func_address + 8)
             self.i += 1
             self.pb[self.i] = ("JP", self.symbol_table[func_row]['start_line'])
             self.i += 1
@@ -356,10 +354,10 @@ class code_generator:
                 return
             arg_address = func_address + 8 + self.symbol_table[func_row]['num'] * 4
             for _ in range(self.symbol_table[func_row]['num']):
-                self.pb[self.i] = ("ASSIGN",self.ss.pop() , arg_address)
+                self.pb[self.i] = ("ASSIGN", self.ss.pop(), arg_address)
                 arg_address -= 4
                 self.i += 1
-            self.pb[self.i] = ("ASSIGN","#{}".format(self.i + 2) , func_address + 8)
+            self.pb[self.i] = ("ASSIGN", "#{}".format(self.i + 2), func_address + 8)
             self.i += 1
             self.pb[self.i] = ("JP", self.symbol_table[func_row]['start_line'])
             self.i += 1
@@ -373,10 +371,9 @@ class code_generator:
             self.i += 1
             pass
 
-            
-        else:
-            print('\033[91m' + "unknown semantic action: :{}".format(action) +  '\033[0m')
 
+        else:
+            print('\033[91m' + "unknown semantic action: :{}".format(action) + '\033[0m')
 
     def dump(self):
         '''
@@ -394,7 +391,7 @@ class code_generator:
                 counter += 1
                 if counter != 4:
                     output.write(", ")
-            while counter < 3 :
+            while counter < 3:
                 output.write(", ")
                 counter += 1
             output.write(")\n")
