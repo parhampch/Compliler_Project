@@ -299,7 +299,7 @@ class code_generator:
                 self.pb[self.i] = ("ASSIGN",self.ss.pop() , arg_address)
                 arg_address -= 4
                 self.i += 1
-            self.pb[self.i] = ("ASSIGN",self.i + 2 , func_address + 8)
+            self.pb[self.i] = ("ASSIGN","#{}".format(self.i + 2) , func_address + 8)
             self.i += 1
             self.pb[self.i] = ("JP", self.symbol_table[func_row]['start_line'])
             self.i += 1
