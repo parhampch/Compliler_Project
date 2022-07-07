@@ -66,16 +66,7 @@ class code_generator:
         return row
 
     def codegen(self, input, action, line_number):
-        # if self.i > 20:
-        #     print("here")
-        #     print("here")
-        #     print("here")
-        #     pass
         print("codegen executed with input: {} and action: {}".format(input, action))
-        # if self.i > 9:
-            # print("here")
-            # print("here")
-            # pass
         if action == "\\pid":
             if input in self.terminals:
                 return
@@ -344,23 +335,18 @@ class code_generator:
             func_row['start_line'] = self.i
             self.current_func = None
         elif action == "\\arguments_count":
-            # self.ss.append(0)
+            self.ss.append(0)
             pass
         elif action == "\\argument":
             argument = self.ss[-1]
-            func_name = self.ss[-2]
-
-            '''            
             arguments_count = self.ss[-2]
             func_name = self.ss[-3]
-            '''
-
             self.ss.pop()
-            # self.ss.pop()
+            self.ss.pop()
             self.ss.pop()
             self.ss.append(argument)
-            # self.ss.append(arguments_count+1)
             self.ss.append(func_name)
+            self.ss.append(arguments_count+1)
         elif action == "\\func_call":
             func_address = self.ss.pop()
             arguments_count = self.ss.pop()
@@ -384,22 +370,27 @@ class code_generator:
             # self.ss.append("{}".format(func_address + 4))
 
         elif action == "\\func_call_primary":
+            arguments_count = self.ss.pop()
             func_address = self.ss.pop()
-            func_row = self.get_row_by_address(func_address)
-            if self.symbol_table[func_row]['lexeme'] == 'output':
+            func_row = self.symbol_table[self.get_row_by_address(func_address)]
+
+            if func_row['lexeme'] == 'output':
                 self.pb[self.i] = ("PRINT", self.ss.pop())
                 self.i += 1
                 return
-            arg_address = func_address + 8 + self.symbol_table[func_row]['num'] * 4
-            for _ in range(self.symbol_table[func_row]['num']):
+            if arguments_count != func_row['num']:
+                self.semantic_errors.append("#{}\t:Semantic Error! Mismatch in numbers of arguments of {}"
+                                            .format(line_number, func_row['lexeme']))
+            arg_address = func_address + 8 + func_row['num'] * 4
+            for _ in range(func_row['num']):
                 self.pb[self.i] = ("ASSIGN", self.ss.pop(), arg_address)
                 arg_address -= 4
                 self.i += 1
             self.pb[self.i] = ("ASSIGN", "#{}".format(self.i + 2), func_address + 8)
             self.i += 1
-            self.pb[self.i] = ("JP", self.symbol_table[func_row]['start_line'])
+            self.pb[self.i] = ("JP", func_row['start_line'])
             self.i += 1
-            if self.symbol_table[func_row]["returns"]:
+            if func_row["returns"]:
                 self.ss.append("{}".format(func_address + 4))
             else:
                 self.ss.append("NULL")
