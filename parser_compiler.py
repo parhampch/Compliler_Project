@@ -54,7 +54,7 @@ parsing_table = {
                  "*": "",
                  "**": "",
                  "NUM": "",
-                 "$": "epsilon",
+                 "$": "epsilon \\sem_main",
                  },
     "Statement": {";": "synch",
                  "break": "Simple_stmt",
@@ -687,7 +687,7 @@ parsing_table = {
                  "=": "",
                  "[": "[ Expression \\calculate_primary ] Primary",
                  "]": "epsilon",
-                 "(": "( Arguments \\func_call_primary ) Primary",
+                 "(": "( \\arguments_count Arguments \\func_call_primary ) Primary",
                  ")": "epsilon",
                  ",": "epsilon",
                  "return": "",
@@ -833,7 +833,7 @@ class Parser:
                 current_node = stack.pop()
                 current_sentential = current_node.name
                 if current_sentential[0] == "\\":
-                    cg.codegen(cg_input, current_sentential)
+                    cg.codegen(cg_input, current_sentential, line_number)
                     continue
                 if current_sentential in terminals:
                     if effective_token == current_sentential:

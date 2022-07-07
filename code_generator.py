@@ -15,6 +15,10 @@ class code_generator:
         self.scope = 0
         self.while_scope_continue = list()
         self.while_scope_break = list()
+        self.semantic_errors = list()
+        self.inside_while_loop = False
+        self.expecting_return = False
+        self.func_def_stack = list()
 
     pass
 
@@ -61,17 +65,17 @@ class code_generator:
             self.data_pointer += 4
         return row
 
-    def codegen(self, input, action):
+    def codegen(self, input, action, line_number):
         # if self.i > 20:
         #     print("here")
         #     print("here")
         #     print("here")
         #     pass
         print("codegen executed with input: {} and action: {}".format(input, action))
-        if self.i > 9:
+        # if self.i > 9:
             # print("here")
             # print("here")
-            pass
+            # pass
         if action == "\\pid":
             if input in self.terminals:
                 return
@@ -79,13 +83,19 @@ class code_generator:
             self.ss.append(row['address'])
         elif action == "\\add":
             t = self.gettemp()
-            self.pb[self.i] = ("ADD", self.ss.pop(), self.ss.pop(), t)
+            arg1, arg2 = self.ss.pop(), self.ss.pop()
+            if arg1 == "NULL" or arg2 == "NULL":
+                self.semantic_errors.append("#{}\t:Semantic Error! Void type in operands".format(line_number))
+            self.pb[self.i] = ("ADD", arg1, arg2, t)
             self.i += 1
             self.ss.append(t)
             pass
         elif action == "\\mult":
             t = self.gettemp()
-            self.pb[self.i] = ("MULT", self.ss.pop(), self.ss.pop(), t)
+            arg1, arg2 = self.ss.pop(), self.ss.pop()
+            if arg1 == "NULL" or arg2 == "NULL":
+                self.semantic_errors.append("#{}\t:Semantic Error! Void type in operands".format(line_number))
+            self.pb[self.i] = ("MULT", arg1, arg2, t)
             self.i += 1
             self.ss.append(t)
             pass
@@ -93,6 +103,8 @@ class code_generator:
             t = self.gettemp()
             rhs = self.ss.pop()
             lhs = self.ss.pop()
+            if rhs == "NULL" or lhs == "NULL":
+                self.semantic_errors.append("#{}\t:Semantic Error! Void type in operands".format(line_number))
             self.pb[self.i] = ("SUB", lhs, rhs, t)
             self.i += 1
             self.ss.append(t)
@@ -100,6 +112,8 @@ class code_generator:
         elif action == "\\pow":
             exponent = self.ss.pop()
             base = self.ss.pop()
+            if exponent == "NULL" or base == "NULL":
+                self.semantic_errors.append("#{}\t:Semantic Error! Void type in operands".format(line_number))
             t = self.gettemp()
             t2 = self.gettemp()
             self.pb[self.i] = ("ASSIGN", "#1", t)
@@ -134,9 +148,9 @@ class code_generator:
             self.pb[self.i + 2] = ("ASSIGN", new_value, "@{}".format(t2))
             self.i += 3
             pass
-        elif action == "\\funcRes":
-            print('\033[91m' + "semantic action not implemented: :{}".format(action) + '\033[0m')
-            pass
+        # elif action == "\\funcRes":
+        #     print('\033[91m' + "semantic action not implemented: :{}".format(action) + '\033[0m')
+        #     pass
         elif action == "\\lRelop":
             temp = self.gettemp()
             value = self.ss.pop()
@@ -156,6 +170,8 @@ class code_generator:
             op2 = self.ss.pop()
             op = self.ss.pop()
             op1 = self.ss.pop()
+            if op1 == "NULL" or op2 == "NULL":
+                self.semantic_errors.append("#{}\t:Semantic Error! Void type in operands".format(line_number))
             if op == 0:
                 op = "EQ"
             elif op == 1:
@@ -170,6 +186,7 @@ class code_generator:
             row2 = self.get_symbol_table_row(self.current_func)
             row2['num'] += 1
             self.i += 1
+            self.func_def_stack[-1]["arguments"] += 1
         elif action == "\\return":
 
             '''return value is at the top of the stack.
@@ -184,14 +201,13 @@ class code_generator:
             self.pb[self.i] = ("ASSIGN", value, return_value_address)
             self.pb[self.i + 1] = ("JP", return_address_pointer)
             self.i += 2
-            # self.ss.append("{}".format(function_pointer + 4))
+            self.func_def_stack[-1]["returns"] = True
 
         elif action == "\\return_zero":
             function_pointer = int(self.return_scope[-1])
             return_address_pointer = "@{}".format(function_pointer + 8)
             self.pb[self.i] = ("JP", return_address_pointer)
             self.i += 1
-            # self.ss.pop()
 
         elif action == "\\save":
             boolean_result = self.ss[-1]
@@ -221,6 +237,7 @@ class code_generator:
             self.symbol_table[len(self.symbol_table)] = row
             self.return_scope.append(row['address'])
             self.data_pointer += 4
+            self.func_def_stack.append({"id": len(self.symbol_table), "name": input, "returns": False, "arguments": 0})
             if input != "main":
                 self.pb[self.i + 1] = ("JP",)
                 self.pb[self.i + 2] = ("ASSIGN", "#0", self.data_pointer)  # return value.
@@ -293,6 +310,10 @@ class code_generator:
                     if self.symbol_table[row]['scope'] == self.scope:
                         self.symbol_table[row]['scope'] = -1
             self.scope -= 1
+            func_info = self.func_def_stack.pop()
+            self.symbol_table[func_info["id"]]["returns"] = func_info["returns"]
+            self.symbol_table[func_info["id"]]["arguments"] = func_info["arguments"]
+
 
         elif action == "\\while":
             a = self.ss.pop()
@@ -300,6 +321,7 @@ class code_generator:
             c = self.ss.pop()
             self.pb[a] = ("JPF", b, self.i + 1)
             self.pb[self.i] = ("JP", c)
+            self.inside_while_loop = False
 
             break_list = self.while_scope_break.pop()
             for break_address in break_list:
@@ -315,21 +337,37 @@ class code_generator:
             self.ss.append(self.i)
             self.while_scope_continue.append(list())
             self.while_scope_break.append(list())
+            self.inside_while_loop = True
             pass
         elif action == "\\func_line":
             func_row = self.get_symbol_table_row(self.current_func)
             func_row['start_line'] = self.i
             self.current_func = None
+        elif action == "\\arguments_count":
+            # self.ss.append(0)
+            pass
         elif action == "\\argument":
             argument = self.ss[-1]
             func_name = self.ss[-2]
+
+            '''            
+            arguments_count = self.ss[-2]
+            func_name = self.ss[-3]
+            '''
+
             self.ss.pop()
+            # self.ss.pop()
             self.ss.pop()
             self.ss.append(argument)
+            # self.ss.append(arguments_count+1)
             self.ss.append(func_name)
         elif action == "\\func_call":
             func_address = self.ss.pop()
+            arguments_count = self.ss.pop()
             func_row = self.get_row_by_address(func_address)
+            if arguments_count != func_row['num']:
+                self.semantic_errors.append("#{}\t:Semantic Error! Mismatch in numbers of arguments of {}"
+                                            .format(line_number, func_row['name']))
             if self.symbol_table[func_row]['lexeme'] == 'output':
                 self.pb[self.i] = ("PRINT", self.ss.pop())
                 self.i += 1
@@ -361,19 +399,34 @@ class code_generator:
             self.i += 1
             self.pb[self.i] = ("JP", self.symbol_table[func_row]['start_line'])
             self.i += 1
-            self.ss.append("{}".format(func_address + 4))
+            if self.symbol_table[func_row]["returns"]:
+                self.ss.append("{}".format(func_address + 4))
+            else:
+                self.ss.append("NULL")
 
         elif action == "\\break":
             self.while_scope_break[len(self.while_scope_break) - 1].append(self.i)
             self.i += 1
+            if not self.inside_while_loop:
+                self.semantic_errors.append((line_number, "No 'while' found for 'break'"))
         elif action == "\\continue":
             self.while_scope_continue[len(self.while_scope_continue) - 1].append(self.i)
             self.i += 1
             pass
+            if not self.inside_while_loop:
+                self.semantic_errors.append((line_number, "No 'while' found for 'continue'"))
+        elif action == "\\sem_main":
+            for key in self.symbol_table:
+                entry = self.symbol_table[key]
+                if entry['lexeme'] == 'main' and entry['scope'] == 0 and entry['type'] == "func":
+                    break
+            else:
+                self.semantic_errors.append("#{}\t:Semantic Error! main function not found".format(line_number))
 
 
-        else:
-            print('\033[91m' + "unknown semantic action: :{}".format(action) + '\033[0m')
+
+        # else:
+        #     print('\033[91m' + "unknown semantic action: :{}".format(action) + '\033[0m')
 
     def dump(self):
         '''
@@ -383,6 +436,16 @@ class code_generator:
         :return: None
         '''
         output = open('output.txt', 'w')
+        semantic_errors_output = open('semantic_errors.txt', 'w')
+        if len(self.semantic_errors) > 0:
+            output.write("The output code has not been generated")
+            output.close()
+            for error in self.semantic_errors:
+                semantic_errors_output.write(error + '\n')
+            return
+        else :
+            semantic_errors_output.write("The input program is semantically correct")
+        semantic_errors_output.close()
         for key in range(len(self.pb)):
             output.write("{}\t(".format(key))
             counter = 0
