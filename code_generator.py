@@ -19,6 +19,7 @@ class code_generator:
         self.inside_while_loop = False
         self.expecting_return = False
         self.func_def_stack = list()
+        self.no_more_global_variable = False
 
     pass
 
@@ -28,13 +29,19 @@ class code_generator:
         :param id: lexeme
         :return: row(if exists) and False (if does not)
         '''
+        ans = False
+        max_scope = -1
         for row in self.symbol_table:
             if self.symbol_table[row]['lexeme'] == id:
                 if 'scope' in self.symbol_table[row]:
-                    if self.symbol_table[row]['scope'] == -1:
-                        continue
-                return self.symbol_table[row]
-        return False
+                    if self.symbol_table[row]['scope'] > max_scope:
+                        ans = self.symbol_table[row]
+                        max_scope = ans['scope']
+                else:
+                    self.symbol_table[row]['scope'] = self.scope
+                    ans = self.symbol_table[row]
+                    max_scope = ans['scope']
+        return ans
 
     def gettemp(self):
         value = "{}".format(self.temporary_pointer)
@@ -116,14 +123,21 @@ class code_generator:
             self.i += 6
             self.ss.append(t)
         elif action == "\\pnum":
-            # self.ss.append("#" + input)
-            temp = self.gettemp()
-            self.pb[self.i] = ("ASSIGN", "#" + input, temp)
-            self.ss.append(temp)
-            self.i += 1
-        elif action == "\\assign":
+            self.ss.append("#" + input)
+            # temp = self.gettemp()
+            # self.pb[self.i] = ("ASSIGN", "#" + input, temp)
+            # self.ss.append(temp)
+            # self.i += 1
+        elif action == "\\assign": # R -> A
             R = self.ss.pop()
             A = self.ss.pop()
+            row = self.get_row_by_address(A)
+            row = self.symbol_table[row]
+            if self.scope != row['scope']:
+                self.symbol_table[len(self.symbol_table)] =\
+                    {'lexeme': row['lexeme'], "scope": self.scope, 'address': self.data_pointer}
+                # self.data_pointer += 4
+                A = self.get_symbol_table_row(row['lexeme'])['address']
             self.pb[self.i] = ("ASSIGN", R, A)
             self.i += 1
 
@@ -222,6 +236,7 @@ class code_generator:
             self.pb[address] = ("JPF", address2, self.i)
 
         elif action == "\\func_def":
+            self.no_more_global_variable = True
             self.pb[self.i] = ("ASSIGN", "#0", self.data_pointer)
             row = {'lexeme': input, 'address': self.data_pointer, 'type': 'func', 'num': 0, 'scope': self.scope}
             self.current_func = input
@@ -295,7 +310,7 @@ class code_generator:
             self.ss.pop()
             self.ss.pop()
         elif action == "\\end_func":
-            self.return_scope.pop()
+            function_pointer = int(self.return_scope.pop())
             for row in self.symbol_table:
                 if 'scope' in self.symbol_table[row]:
                     if self.symbol_table[row]['scope'] == self.scope:
@@ -304,6 +319,10 @@ class code_generator:
             func_info = self.func_def_stack.pop()
             self.symbol_table[func_info["id"]]["returns"] = func_info["returns"]
             self.symbol_table[func_info["id"]]["arguments"] = func_info["arguments"]
+            if func_info['name'] != 'main':
+                return_address_pointer = "@{}".format(function_pointer + 8)
+                self.pb[self.i] = ("JP", return_address_pointer)
+                self.i += 1
 
 
         elif action == "\\while":
@@ -348,24 +367,25 @@ class code_generator:
             self.ss.append(func_name)
             self.ss.append(arguments_count+1)
         elif action == "\\func_call":
-            func_address = self.ss.pop()
             arguments_count = self.ss.pop()
+            func_address = self.ss.pop()
             func_row = self.get_row_by_address(func_address)
+            func_row = self.symbol_table[func_row]
             if arguments_count != func_row['num']:
                 self.semantic_errors.append("#{}\t:Semantic Error! Mismatch in numbers of arguments of {}"
-                                            .format(line_number, func_row['name']))
-            if self.symbol_table[func_row]['lexeme'] == 'output':
+                                            .format(line_number, func_row['lexeme']))
+            if func_row['lexeme'] == 'output':
                 self.pb[self.i] = ("PRINT", self.ss.pop())
                 self.i += 1
                 return
-            arg_address = func_address + 8 + self.symbol_table[func_row]['num'] * 4
-            for _ in range(self.symbol_table[func_row]['num']):
+            arg_address = func_address + 8 + func_row['num'] * 4
+            for _ in range(func_row['num']):
                 self.pb[self.i] = ("ASSIGN", self.ss.pop(), arg_address)
                 arg_address -= 4
                 self.i += 1
             self.pb[self.i] = ("ASSIGN", "#{}".format(self.i + 2), func_address + 8)
             self.i += 1
-            self.pb[self.i] = ("JP", self.symbol_table[func_row]['start_line'])
+            self.pb[self.i] = ("JP", func_row['start_line'])
             self.i += 1
             # self.ss.append("{}".format(func_address + 4))
 
@@ -413,6 +433,10 @@ class code_generator:
                     break
             else:
                 self.semantic_errors.append("#{}\t:Semantic Error! main function not found".format(line_number))
+        elif action == "\\pidGlobal":
+            if self.no_more_global_variable:
+                self.semantic_errors.append("#{}\t:Semantic Error! {} is not defined appropriately}"
+                                            .format(line_number, input))
 
 
 

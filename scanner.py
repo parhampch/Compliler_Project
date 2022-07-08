@@ -105,7 +105,7 @@ class Scanner:
         self.symbol_table[5] = {'scope': 0, 'address': '', 'lexeme': 'if'}
         self.symbol_table[6] = {'scope': 0, 'address': '', 'lexeme': 'return'}
         self.symbol_table[7] = {'scope': 0, 'address': '', 'lexeme': 'while'}
-        self.symbol_table[8] = {'scope': 0, 'address': '500', 'lexeme': 'output', 'num': 0}
+        self.symbol_table[8] = {'scope': 0, 'address': '500', 'lexeme': 'output', 'num': 1, 'type': 'func'}
 
 
         self.symbol_code = len(self.symbol_table) + 1
@@ -145,8 +145,8 @@ class Scanner:
             token_type, token_lexeme = "", ""
             if self.state.is_final:
                 # print(self.token)
-                if "recursive sample" in self.token or "Recursive Sample" in self.token or "# === sample 9 ====" in self.token:
-                    0/0
+                # if "recursive sample" in self.token or "Recursive Sample" in self.token or "# === sample 9 ====" in self.token:
+                #     0/0
                 if self.state.has_star:
                     self.cached = self.token[-1]
                     self.is_cache = True
