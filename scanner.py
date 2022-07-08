@@ -105,7 +105,7 @@ class Scanner:
         self.symbol_table[5] = {'scope': 0, 'address': '', 'lexeme': 'if'}
         self.symbol_table[6] = {'scope': 0, 'address': '', 'lexeme': 'return'}
         self.symbol_table[7] = {'scope': 0, 'address': '', 'lexeme': 'while'}
-        self.symbol_table[8] = {'scope': 0, 'address': '500', 'lexeme': 'output', 'num': 1, 'type': 'func'}
+        self.symbol_table[8] = {'scope': 0, 'address': '500', 'lexeme': 'output', 'num': 1, 'type': 'func', 'returns': False}
 
 
         self.symbol_code = len(self.symbol_table) + 1
@@ -163,14 +163,14 @@ class Scanner:
                         else:
                             token_type, token_lexeme = 'ID', self.token
                             # self.tokens_file.write("({}, {}) ".format(token_type, token_lexeme))
-                            for symbol in self.symbol_table.values():
-                                if self.token == symbol['lexeme']:
-                                    if 'scope' in symbol:
-                                        if symbol['scope'] != -1:
-                                            break
-                            else:  # if the token was not in file before, adds it.
-                                self.symbol_table[self.symbol_code] = {'lexeme': self.token}
-                                self.symbol_code += 1
+                            # for symbol in self.symbol_table.values():
+                            #     if self.token == symbol['lexeme']:
+                            #         if 'scope' in symbol:
+                            #             if symbol['scope'] != -1:
+                            #                 break
+                            # else:  # if the token was not in file before, adds it.
+                            #     self.symbol_table[self.symbol_code] = {'lexeme': self.token}
+                            #     self.symbol_code += 1
                     else:
                         token_type, token_lexeme = self.classes[self.state.name], self.token
                         # self.tokens_file.write("({}, {}) ".format(token_type, token_lexeme))

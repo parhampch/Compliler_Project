@@ -164,7 +164,7 @@ parsing_table = {
                  "break": "",
                  "continue": "",
                  "ID": "",
-                 "=": "= C \\assign",
+                 "=": "\\install = C \\assign",
                  "[": "[ Expression ] = C \\assignArr",
                  "]": "",
                  "(": "( Arguments \\func_call ) \\funcRes",
