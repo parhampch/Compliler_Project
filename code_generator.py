@@ -101,6 +101,8 @@ class code_generator:
 
     def codegen(self, input, action, line_number):
         print("codegen executed with input: {} and action: {}".format(input, action))
+        if line_number == 11:
+            print("Nigga")
         if action == "\\pid":
             if input in self.terminals:
                 return
@@ -443,8 +445,7 @@ class code_generator:
             arguments_count = self.ss.pop()
             func_address = self.ss.pop()
             func_row = self.find_lexeme(func_address)
-            if func_row == -1:
-                self.semantic_err(line_number, "def", func_address)
+            if not func_row:
                 self.ss.append("NULL")
                 return
             func_row = self.find_function_with_lexeme_and_arguments(func_address, arguments_count)
@@ -502,10 +503,10 @@ class code_generator:
             if self.no_more_global_variable:
                 self.semantic_err(line_number, "def", input)
         elif action == "\\check_def":
-            # arg = self.ss[-1]
-            # if not self.is_address(arg) or arg not in self.symbol_table:
-            #     self.semantic_errors.append("#{}\t:Semantic Error! {} is not defined appropriately."
-            #                                 .format(line_number, arg))
+            arg = self.ss[-1]
+            if not self.is_address(arg):
+                if not self.find_lexeme(arg):
+                    self.semantic_err(line_number, "def", arg)
             pass
         self.previous_input = input
 
