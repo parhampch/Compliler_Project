@@ -105,7 +105,7 @@ class Scanner:
         self.symbol_table[5] = {'scope': 0, 'address': '', 'lexeme': 'if'}
         self.symbol_table[6] = {'scope': 0, 'address': '', 'lexeme': 'return'}
         self.symbol_table[7] = {'scope': 0, 'address': '', 'lexeme': 'while'}
-        self.symbol_table[8] = {'scope': 0, 'address': '500', 'lexeme': 'output', 'num': 1, 'type': 'func', 'returns': False}
+        self.symbol_table[8] = {'scope': 0, 'address': '500', 'lexeme': 'output', 'arguments': 1, 'type': 'func', 'returns': False}
 
 
         self.symbol_code = len(self.symbol_table) + 1
