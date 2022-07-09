@@ -101,7 +101,7 @@ class code_generator:
 
     def codegen(self, input, action, line_number):
         print("codegen executed with input: {} and action: {}".format(input, action))
-        if line_number == 11:
+        if line_number == 7:
             print("Nigga")
         if action == "\\pid":
             if input in self.terminals:
@@ -446,12 +446,16 @@ class code_generator:
             func_address = self.ss.pop()
             func_row = self.find_lexeme(func_address)
             if not func_row:
-                self.ss.append("NULL")
+                for _ in range (0, arguments_count):
+                    self.ss.pop()
+                self.ss.append("0")
                 return
             func_row = self.find_function_with_lexeme_and_arguments(func_address, arguments_count)
             if func_row == -1:
+                for _ in range (0, arguments_count):
+                    self.ss.pop()
                 self.semantic_err(line_number, "arg", func_address)
-                self.ss.append("NULL")
+                self.ss.append("0")
                 return
             func_row = self.symbol_table[func_row]
             func_address = func_row['address']
@@ -459,12 +463,6 @@ class code_generator:
                 self.pb[self.i] = ("PRINT", self.ss.pop())
                 self.i += 1
                 return
-            if 'arguments' not in func_row:
-                self.semantic_err(line_number, "def", func_row['lexeme'])
-                self.ss.append("NULL")
-                return
-            elif arguments_count != func_row['arguments']:
-                self.semantic_err(line_number, "arg", func_row['lexeme'])
             arg_address = func_address + 8 + func_row['arguments'] * 4
             for _ in range(arguments_count):
                 self.pb[self.i] = ("ASSIGN", self.ss.pop(), arg_address)
