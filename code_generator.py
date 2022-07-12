@@ -94,15 +94,14 @@ class code_generator:
         if arg1 == "NULL" or arg2 == "NULL":
             self.semantic_err(line_number, "nul", None)
             return
-        if not self.is_address(arg1):
-            self.semantic_err(line_number, "def", arg1)
-        if not self.is_address(arg2):
-            self.semantic_err(line_number, "def", arg2)
+        # todo: bring these back
+        # if not self.is_address(arg1):
+        #     self.semantic_err(line_number, "def", arg1)
+        # if not self.is_address(arg2):
+        #     self.semantic_err(line_number, "def", arg2)
 
     def codegen(self, input, action, line_number):
-        print("codegen executed with input: {} and action: {}".format(input, action))
-        if line_number == 7:
-            print("Nigga")
+        # print("codegen executed with input: {} and action: {}".format(input, action))
         if action == "\\pid":
             if input in self.terminals:
                 return
@@ -116,8 +115,7 @@ class code_generator:
         elif action == "\\add":
             t = self.gettemp()
             arg1, arg2 = self.ss.pop(), self.ss.pop()
-            if arg1 == "NULL" or arg2 == "NULL":
-                self.semantic_err(line_number, "nul", None)
+            self.check_arithmatic_operands(arg1, arg2, line_number)
             self.pb[self.i] = ("ADD", arg1, arg2, t)
             self.i += 1
             self.ss.append(t)
@@ -181,8 +179,8 @@ class code_generator:
             arr_id = self.ss.pop()
             t = self.gettemp()
             t2 = self.gettemp()
-            if not self.is_address(new_value):
-                self.semantic_err(line_number, "def", new_value)
+            # if not self.is_address(new_value):
+            #     self.semantic_err(line_number, "def", new_value)
             self.pb[self.i] = ("MULT", index, "#4", t)
             self.pb[self.i + 1] = ("ADD", t, arr_id, t2)
             self.pb[self.i + 2] = ("ASSIGN", new_value, "@{}".format(t2))
@@ -221,8 +219,6 @@ class code_generator:
             self.i += 1
             self.ss.append(dest)
         elif action == "\\param":
-            if line_number == 18 or line_number == 1:
-                print("Nigga")
             self.pb[self.i] = ("ASSIGN", "#0", self.data_pointer)
             self.symbol_table[len(self.symbol_table)+1] = {
                 'lexeme':input, 'address': self.data_pointer, 'scope': self.scope
@@ -406,12 +402,12 @@ class code_generator:
             self.ss.pop()
             self.ss.pop()
             if not self.is_address(argument):
-                self.semantic_err(line_number, "def", argument)
                 self.ss.append("NULL")
             else: self.ss.append(argument)
             self.ss.append(func_name)
             self.ss.append(arguments_count+1)
         elif action == "\\func_call":
+            '''
             arguments_count = self.ss.pop()
             func_address = self.ss.pop()
             if not self.is_address(func_address):
@@ -430,6 +426,34 @@ class code_generator:
                 self.pb[self.i] = ("PRINT", self.ss.pop())
                 self.i += 1
                 return
+            '''
+            arguments_count = self.ss.pop()
+            func_address = self.ss.pop()
+            func_row = self.find_lexeme(func_address)
+            if not func_row:
+                for _ in range (0, arguments_count):
+                    self.ss.pop()
+                self.ss.append("0")
+                return
+            func_with_same_name = func_row
+            func_row = self.find_function_with_lexeme_and_arguments(func_address, arguments_count)
+            if func_row == -1:
+                for _ in range (0, arguments_count):
+                    self.ss.pop()
+                self.semantic_err(line_number, "arg", func_address)
+                # todo: check
+                # self.ss.append("0")
+                if 'returns' in func_with_same_name and func_with_same_name["returns"]:
+                    self.ss.append(0)
+                else:
+                    self.ss.append("NULL")
+                return
+            func_row = self.symbol_table[func_row]
+            func_address = func_row['address']
+            if func_row['lexeme'] == 'output':
+                self.pb[self.i] = ("PRINT", self.ss.pop())
+                self.i += 1
+                return
             arg_address = func_address + 8 + func_row['arguments'] * 4
             for _ in range(arguments_count):
                 self.pb[self.i] = ("ASSIGN", self.ss.pop(), arg_address)
@@ -439,6 +463,10 @@ class code_generator:
             self.i += 1
             self.pb[self.i] = ("JP", func_row['start_line'])
             self.i += 1
+            if 'returns' in func_row and func_row["returns"]:
+                self.ss.append("{}".format(func_address + 4))
+            else:
+                self.ss.append("NULL")
             # self.ss.append("{}".format(func_address + 4))
 
         elif action == "\\func_call_primary":
@@ -450,12 +478,18 @@ class code_generator:
                     self.ss.pop()
                 self.ss.append("0")
                 return
+            func_with_same_name = func_row
             func_row = self.find_function_with_lexeme_and_arguments(func_address, arguments_count)
             if func_row == -1:
                 for _ in range (0, arguments_count):
                     self.ss.pop()
                 self.semantic_err(line_number, "arg", func_address)
-                self.ss.append("0")
+                # todo: check
+                # self.ss.append("0")
+                if 'returns' in func_with_same_name and func_with_same_name["returns"]:
+                    self.ss.append(0)
+                else:
+                    self.ss.append("NULL")
                 return
             func_row = self.symbol_table[func_row]
             func_address = func_row['address']
@@ -506,6 +540,11 @@ class code_generator:
                 if not self.find_lexeme(arg):
                     self.semantic_err(line_number, "def", arg)
             pass
+        # elif action == "\\check_def_var":
+        #     arg = self.ss[-1]
+        #     if not self.is_address(arg):
+        #         if not self.find_lexeme(arg):
+        #             self.semantic_err(line_number, "def", arg)
         self.previous_input = input
 
 
@@ -520,7 +559,7 @@ class code_generator:
         elif type == "nul":
             self.semantic_errors.append("#{} : Semantic Error! Void type in operands.".format(line_number))
         elif type == "arg":
-            self.semantic_errors.append("#{} : Semantic error! Mismatch in numbers of arguments of '{}'."
+            self.semantic_errors.append("#{} : Semantic Error! Mismatch in numbers of arguments of '{}'."
                                         .format(line_number,arg1))
         elif type == "brk":
             self.semantic_errors.append("#{} : Semantic Error! No 'while' found for 'break'."
