@@ -170,6 +170,7 @@ class code_generator:
         elif action == "\\assign": # R -> A
             R = self.ss.pop()
             A = self.ss.pop()
+            self.check_arithmatic_operands(R, line_number)
             row = self.get_row_number_by_address(A)
             if row not in self.symbol_table:
                 return
