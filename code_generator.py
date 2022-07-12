@@ -23,6 +23,7 @@ class code_generator:
         self.func_def_stack = list()
         self.no_more_global_variable = False
         self.previous_input = None
+        self.arithmatic_left_undefined = False
 
     def find_lexeme(self, id):
         '''
@@ -90,10 +91,11 @@ class code_generator:
                             return row
         return -1
 
-    def check_arithmatic_operands(self, arg1, arg2, line_number):
-        if arg1 == "NULL" or arg2 == "NULL":
+    def check_arithmatic_operands(self, arg, line_number):
+        if arg == "NULL":
             self.semantic_err(line_number, "nul", None)
-            return
+            return False
+        return True
         # todo: bring these back
         # if not self.is_address(arg1):
         #     self.semantic_err(line_number, "def", arg1)
@@ -115,7 +117,9 @@ class code_generator:
         elif action == "\\add":
             t = self.gettemp()
             arg1, arg2 = self.ss.pop(), self.ss.pop()
-            self.check_arithmatic_operands(arg1, arg2, line_number)
+            if not self.arithmatic_left_undefined:
+                self.check_arithmatic_operands(arg1, line_number)
+            self.arithmatic_left_undefined = False
             self.pb[self.i] = ("ADD", arg1, arg2, t)
             self.i += 1
             self.ss.append(t)
@@ -123,7 +127,9 @@ class code_generator:
         elif action == "\\mult":
             t = self.gettemp()
             arg1, arg2 = self.ss.pop(), self.ss.pop()
-            self.check_arithmatic_operands(arg1, arg2, line_number)
+            if not self.arithmatic_left_undefined:
+                self.check_arithmatic_operands(arg1, line_number)
+            self.arithmatic_left_undefined = False
             self.pb[self.i] = ("MULT", arg1, arg2, t)
             self.i += 1
             self.ss.append(t)
@@ -132,7 +138,9 @@ class code_generator:
             t = self.gettemp()
             rhs = self.ss.pop()
             lhs = self.ss.pop()
-            self.check_arithmatic_operands(lhs, rhs, line_number)
+            if not self.arithmatic_left_undefined:
+                self.check_arithmatic_operands(rhs, line_number)
+            self.arithmatic_left_undefined = False
             self.pb[self.i] = ("SUB", lhs, rhs, t)
             self.i += 1
             self.ss.append(t)
@@ -140,7 +148,9 @@ class code_generator:
         elif action == "\\pow":
             exponent = self.ss.pop()
             base = self.ss.pop()
-            self.check_arithmatic_operands(base, exponent, line_number)
+            if not self.arithmatic_left_undefined:
+                self.check_arithmatic_operands(exponent, line_number)
+            self.arithmatic_left_undefined = False
             t = self.gettemp()
             t2 = self.gettemp()
             self.pb[self.i] = ("ASSIGN", "#1", t)
@@ -190,18 +200,8 @@ class code_generator:
         #     print('\033[91m' + "semantic action not implemented: :{}".format(action) + '\033[0m')
         #     pass
         elif action == "\\lRelop":
-            temp = self.gettemp()
-            value = self.ss.pop()
-            self.pb[self.i] = ("ASSIGN", value, temp)
-            self.i += 1
-            self.ss.append(temp)
             self.ss.append(1)
         elif action == "\\eRelop":
-            temp = self.gettemp()
-            value = self.ss.pop()
-            self.pb[self.i] = ("ASSIGN", value, temp)
-            self.i += 1
-            self.ss.append(temp)
             self.ss.append(0)
 
         elif action == "\\relationalExpression":
@@ -543,6 +543,9 @@ class code_generator:
                 if not self.find_lexeme(arg):
                     self.semantic_err(line_number, "def", arg)
             pass
+        elif action == "\\check_op":
+            arg = self.ss[-1]
+            self.arithmatic_left_undefined = not self.check_arithmatic_operands(arg, line_number)
         # elif action == "\\check_def_var":
         #     arg = self.ss[-1]
         #     if not self.is_address(arg):
