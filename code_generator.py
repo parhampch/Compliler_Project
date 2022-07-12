@@ -354,7 +354,7 @@ class code_generator:
             self.scope -= 1
             func_info = self.func_def_stack.pop()
             if self.find_function_with_lexeme_and_arguments(func_info['name'], func_info['arguments']) != -1:
-                self.semantic_err(self.symbol_table[func_info["id"]]['input_line'], "dup", func_info['name'])
+                # self.semantic_err(self.symbol_table[func_info["id"]]['input_line'], "dup", func_info['name'])
                 self.symbol_table[func_info["id"]]["scope"] = -1
             self.symbol_table[func_info["id"]]["returns"] = func_info["returns"]
             self.symbol_table[func_info["id"]]["arguments"] = func_info["arguments"]
@@ -388,6 +388,9 @@ class code_generator:
             pass
         elif action == "\\func_line":
             func_row = self.find_lexeme_all(self.current_func)[-1]
+            temp = self.func_def_stack[-1]
+            if self.find_function_with_lexeme_and_arguments(temp['name'], temp['arguments']) != -1:
+                self.semantic_err(line_number, "dup", temp['name'])
             func_row['start_line'] = self.i
             func_row['input_line'] = line_number
             self.current_func = None
