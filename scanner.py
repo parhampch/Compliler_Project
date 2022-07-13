@@ -98,14 +98,14 @@ class Scanner:
         #                      4: {'lexeme': 'else'}, 5: {'lexeme': 'if'},
         #                      6: {'lexeme': 'return'}, 7: {'lexeme': 'while'}}
 
-        self.symbol_table[1] = {'scope': 0, 'address': '', 'lexeme': 'break'}
-        self.symbol_table[2] = {'scope': 0, 'address': '', 'lexeme': 'continue'}
-        self.symbol_table[3] = {'scope': 0, 'address': '', 'lexeme': 'def'}
-        self.symbol_table[4] = {'scope': 0, 'address': '', 'lexeme': 'else'}
-        self.symbol_table[5] = {'scope': 0, 'address': '', 'lexeme': 'if'}
-        self.symbol_table[6] = {'scope': 0, 'address': '', 'lexeme': 'return'}
-        self.symbol_table[7] = {'scope': 0, 'address': '', 'lexeme': 'while'}
-        self.symbol_table[8] = {'scope': 0, 'address': '500', 'lexeme': 'output', 'arguments': 1, 'type': 'func', 'returns': False}
+        self.symbol_table[1] = {'type': 'keyword', 'scope': 0, 'address': '', 'lexeme': 'break'}
+        self.symbol_table[2] = {'type': 'keyword', 'scope': 0, 'address': '', 'lexeme': 'continue'}
+        self.symbol_table[3] = {'type': 'keyword', 'scope': 0, 'address': '', 'lexeme': 'def'}
+        self.symbol_table[4] = {'type': 'keyword', 'scope': 0, 'address': '', 'lexeme': 'else'}
+        self.symbol_table[5] = {'type': 'keyword', 'scope': 0, 'address': '', 'lexeme': 'if'}
+        self.symbol_table[6] = {'type': 'keyword', 'scope': 0, 'address': '', 'lexeme': 'return'}
+        self.symbol_table[7] = {'type': 'keyword', 'scope': 0, 'address': '', 'lexeme': 'while'}
+        self.symbol_table[8] = {'scope': 0, 'address': '504', 'lexeme': 'output', 'arguments': 1, 'type': 'func', 'returns': False}
 
 
         self.symbol_code = len(self.symbol_table) + 1

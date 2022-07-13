@@ -7,8 +7,8 @@ class code_generator:
         self.scope_stack = list()
         self.ss = list()
         self.pb = dict()
-        self.i = 0
-        self.data_pointer = 504
+        self.i = 1
+        self.data_pointer = 508
         self.temporary_pointer = 1000
         self.terminals = ["break", "continue", "def", "else", "if", "return", "while", "global", "[", "]", "(", ")",
                           "ID", "=", ";", ",", ":", "==", "<", "+", "-", "*", "**", "NUM", "$"]
@@ -72,7 +72,7 @@ class code_generator:
         return self.find_lexeme(input)
 
     def install_id(self, input):
-            row = {'lexeme': input, 'address': self.data_pointer, 'scope': self.scope}
+            row = {'lexeme': input, 'address': self.data_pointer, 'scope': self.scope, 'type': 'var'}
             self.symbol_table[len(self.symbol_table) + 1] = row
             self.data_pointer += 4
             return row
@@ -103,16 +103,24 @@ class code_generator:
         #     self.semantic_err(line_number, "def", arg2)
 
     def codegen(self, input, action, line_number):
-        # print("codegen executed with input: {} and action: {}".format(input, action))
+        print("codegen executed with input: {} and action: {}".format(input, action))
+        if len (self.pb) > 17:
+            print("nigga")
         if action == "\\pid":
             if input in self.terminals:
                 return
             row = self.find_lexeme(input)
-            if not row or 'start_line' in row:
+            if not row or 'type' not in row or row['type'] == 'func':
                 self.ss.append(input)
             else: self.ss.append(row['address'])
         elif action == "\\install":
-            row = self.install_id(self.ss.pop())
+            temp = self.ss.pop()
+            if self.is_address(temp):
+                self.ss.append(temp)
+                return
+            row = self.find_lexeme(temp)
+            if not row:
+                row = self.install_id(temp)
             self.ss.append(row['address'])
         elif action == "\\add":
             t = self.gettemp()
@@ -177,7 +185,7 @@ class code_generator:
             else: row = self.symbol_table[row]
             if self.scope != row['scope']:
                 self.symbol_table[len(self.symbol_table)] =\
-                    {'lexeme': row['lexeme'], "scope": self.scope, 'address': self.data_pointer}
+                    {'lexeme': row['lexeme'], "scope": self.scope, 'address': self.data_pointer, 'type': 'var'}
                 # self.data_pointer += 4
                 A = self.find_lexeme(row['lexeme'])['address']
             self.pb[self.i] = ("ASSIGN", R, A)
@@ -222,7 +230,7 @@ class code_generator:
         elif action == "\\param":
             self.pb[self.i] = ("ASSIGN", "#0", self.data_pointer)
             self.symbol_table[len(self.symbol_table)+1] = {
-                'lexeme':input, 'address': self.data_pointer, 'scope': self.scope
+                'lexeme':input, 'address': self.data_pointer, 'scope': self.scope, 'type': 'var'
             }
             self.data_pointer += 4
             row2 = self.find_lexeme(self.current_func)
@@ -437,7 +445,7 @@ class code_generator:
             if not func_row:
                 for _ in range (0, arguments_count):
                     self.ss.pop()
-                self.ss.append("0")
+                # self.ss.append("0")
                 return
             func_with_same_name = func_row
             func_row = self.find_function_with_lexeme_and_arguments(func_address, arguments_count)
@@ -446,7 +454,7 @@ class code_generator:
                     self.ss.pop()
                 self.semantic_err(line_number, "arg", func_address)
                 # todo: check
-                # self.ss.append("0")
+                self.ss.append("0")
                 if 'returns' in func_with_same_name and func_with_same_name["returns"]:
                     self.ss.append(0)
                 else:
@@ -584,6 +592,9 @@ class code_generator:
 
 
     def dump(self):
+
+        self.pb[0] = ("ASSIGN", "#0", 500)
+
         '''
         outputs program into output.txt
         needs slight modification for final submition but works for now.
