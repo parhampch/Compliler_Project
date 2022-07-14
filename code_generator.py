@@ -182,7 +182,7 @@ class code_generator:
                 return
             else: row = self.symbol_table[row]
             if self.scope != row['scope']:
-                self.symbol_table[len(self.symbol_table)] =\
+                self.symbol_table[len(self.symbol_table) + 1] =\
                     {'lexeme': row['lexeme'], "scope": self.scope, 'address': self.data_pointer, 'type': 'var'}
                 # self.data_pointer += 4
                 A = self.find_lexeme(row['lexeme'])['address']
@@ -456,8 +456,6 @@ class code_generator:
                 self.ss.append("0")
                 if 'returns' in func_with_same_name and func_with_same_name["returns"]:
                     self.ss.append(0)
-                else:
-                    self.ss.append("NULL")
                 return
             func_row = self.symbol_table[func_row]
             func_address = func_row['address']
@@ -476,8 +474,6 @@ class code_generator:
             self.i += 1
             if 'returns' in func_row and func_row["returns"]:
                 self.ss.append("{}".format(func_address + 4))
-            else:
-                self.ss.append("NULL")
             # self.ss.append("{}".format(func_address + 4))
 
         elif action == "\\func_call_primary":
@@ -499,8 +495,6 @@ class code_generator:
                 # self.ss.append("0")
                 if 'returns' in func_with_same_name and func_with_same_name["returns"]:
                     self.ss.append(0)
-                else:
-                    self.ss.append("NULL")
                 return
             func_row = self.symbol_table[func_row]
             func_address = func_row['address']
@@ -519,8 +513,6 @@ class code_generator:
             self.i += 1
             if 'returns' in func_row and func_row["returns"]:
                 self.ss.append("{}".format(func_address + 4))
-            else:
-                self.ss.append("NULL")
 
         elif action == "\\break":
             if len(self.while_scope_break) == 0:
