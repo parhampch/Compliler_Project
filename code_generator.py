@@ -102,6 +102,29 @@ class code_generator:
         # if not self.is_address(arg2):
         #     self.semantic_err(line_number, "def", arg2)
 
+    def convert(self, arg):
+        if isinstance(arg, int):
+            t = self.gettemp()
+            self.pb[self.i] = ("ADD", 500, "#{}".format(arg), t)
+            self.i += 1
+            return "@{}".format(t)
+            pass
+        elif isinstance(arg, str):
+            if arg.startswith("#"):
+                return arg
+            if arg.startswith("@"):
+                arg = arg[1:]
+                t = self.gettemp()
+                self.pb[self.i] = ("ADD", 500, "#{}".format(arg), t)
+                self.i += 1
+                return "@{}".format(t)
+                pass
+            else:
+                t = self.gettemp()
+                self.pb[self.i] = ("ADD", 500, "#{}".format(arg), t)
+                self.i += 1
+                return "@{}".format(t)
+            pass
     def codegen(self, input, action, line_number):
         print("codegen executed with input: {} and action: {}".format(input, action))
         if action == "\\pid":
@@ -126,6 +149,8 @@ class code_generator:
             if not self.arithmatic_left_undefined:
                 self.check_arithmatic_operands(arg1, line_number)
             self.arithmatic_left_undefined = False
+            arg1 = self.convert(arg1)
+            arg2 = self.convert(arg2)
             self.pb[self.i] = ("ADD", arg1, arg2, t)
             self.i += 1
             self.ss.append(t)
@@ -222,7 +247,7 @@ class code_generator:
             elif op == 1:
                 op = "LT"
             dest = self.gettemp()
-            self.pb[self.i] = (op, op1, op2, dest)
+            self.pb[self.i] = (op, self.convert(op1), self.convert(op2), dest)
             self.i += 1
             self.ss.append(dest)
         elif action == "\\param":
@@ -244,8 +269,10 @@ class code_generator:
 
             function_pointer = int(self.return_scope[-1])
             value = self.ss.pop()
-            return_value_address = "{}".format(function_pointer + 4)
-            return_address_pointer = "@{}".format(function_pointer + 8)
+            return_value_address = "{}".format(self.convert(function_pointer + 4))
+            return_address_pointer = self.convert("@{}".format(function_pointer + 8))
+            self.pb[self.i] = ("SUB", "#1000", 500, 500)
+            self.i += 1
             self.pb[self.i] = ("ASSIGN", value, return_value_address)
             self.pb[self.i + 1] = ("JP", return_address_pointer)
             self.i += 2
@@ -253,7 +280,9 @@ class code_generator:
 
         elif action == "\\return_zero":
             function_pointer = int(self.return_scope[-1])
-            return_address_pointer = "@{}".format(function_pointer + 8)
+            return_address_pointer = self.convert("@{}".format(function_pointer + 8))
+            self.pb[self.i] = ("SUB", "#1000", 500, 500)
+            self.i += 1
             self.pb[self.i] = ("JP", return_address_pointer)
             self.i += 1
 
@@ -460,15 +489,20 @@ class code_generator:
             func_row = self.symbol_table[func_row]
             func_address = func_row['address']
             if func_row['lexeme'] == 'output':
-                self.pb[self.i] = ("PRINT", self.ss.pop())
+                self.pb[self.i] = ("PRINT", self.convert(self.ss.pop()))
                 self.i += 1
                 return
+            self.pb[self.i] = ("ADD", "#1000", 500, 500)
+            self.i += 1
             arg_address = func_address + 8 + func_row['arguments'] * 4
             for _ in range(arguments_count):
-                self.pb[self.i] = ("ASSIGN", self.ss.pop(), arg_address)
+                arg_address_inderect = self.convert(arg_address)
+                self.pb[self.i] = ("ASSIGN", self.ss.pop(), arg_address_inderect)
                 arg_address -= 4
                 self.i += 1
-            self.pb[self.i] = ("ASSIGN", "#{}".format(self.i + 2), func_address + 8)
+            return_address = func_address + 8
+            return_address = self.convert(return_address)
+            self.pb[self.i] = ("ASSIGN", "#{}".format(self.i + 2), return_address)
             self.i += 1
             self.pb[self.i] = ("JP", func_row['start_line'])
             self.i += 1
@@ -499,15 +533,20 @@ class code_generator:
             func_row = self.symbol_table[func_row]
             func_address = func_row['address']
             if func_row['lexeme'] == 'output':
-                self.pb[self.i] = ("PRINT", self.ss.pop())
+                self.pb[self.i] = ("PRINT", self.convert(self.ss.pop()))
                 self.i += 1
                 return
+            self.pb[self.i] = ("ADD", "#1000", 500, 500)
+            self.i += 1
             arg_address = func_address + 8 + func_row['arguments'] * 4
             for _ in range(arguments_count):
-                self.pb[self.i] = ("ASSIGN", self.ss.pop(), arg_address)
+                arg_address_inderect = self.convert(arg_address)
+                self.pb[self.i] = ("ASSIGN", self.ss.pop(), arg_address_inderect)
                 arg_address -= 4
                 self.i += 1
-            self.pb[self.i] = ("ASSIGN", "#{}".format(self.i + 2), func_address + 8)
+            return_address = func_address + 8
+            return_address = self.convert(return_address)
+            self.pb[self.i] = ("ASSIGN", "#{}".format(self.i + 2), return_address)
             self.i += 1
             self.pb[self.i] = ("JP", func_row['start_line'])
             self.i += 1
