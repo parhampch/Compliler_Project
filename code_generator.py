@@ -103,7 +103,7 @@ class code_generator:
         #     self.semantic_err(line_number, "def", arg2)
 
     def codegen(self, input, action, line_number):
-        print("codegen executed with input: {} and action: {}".format(input, action))
+        # print("codegen executed with input: {} and action: {}".format(input, action))
         if action == "\\pid":
             if input in self.terminals:
                 return
@@ -456,8 +456,6 @@ class code_generator:
                 self.ss.append("0")
                 if 'returns' in func_with_same_name and func_with_same_name["returns"]:
                     self.ss.append(0)
-                else:
-                    self.ss.append("NULL")
                 return
             func_row = self.symbol_table[func_row]
             func_address = func_row['address']
@@ -476,8 +474,6 @@ class code_generator:
             self.i += 1
             if 'returns' in func_row and func_row["returns"]:
                 self.ss.append("{}".format(func_address + 4))
-            else:
-                self.ss.append("NULL")
             # self.ss.append("{}".format(func_address + 4))
 
         elif action == "\\func_call_primary":
@@ -586,8 +582,8 @@ class code_generator:
         elif type == "dup":
             self.semantic_errors.append("#{} : Semantic Error! Function '{}' has already been defined with this number "
                                         "of arguments.".format(line_number, arg1))
-        else:
-            print('\033[91m' + "unknown semantic error: :{}".format(type) + '\033[0m')
+        # else:
+        #     print('\033[91m' + "unknown semantic error: :{}".format(type) + '\033[0m')
 
 
     def dump(self):
