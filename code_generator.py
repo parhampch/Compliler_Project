@@ -111,11 +111,11 @@ class code_generator:
             self.i += 6
             self.ss.append(t)
         elif action == "\\pnum":
-            # self.ss.append("#" + input)
-            temp = self.gettemp()
-            self.pb[self.i] = ("ASSIGN", "#" + input, temp)
-            self.ss.append(temp)
-            self.i += 1
+            self.ss.append("#" + input)
+            # temp = self.gettemp()
+            # self.pb[self.i] = ("ASSIGN", "#" + input, temp)
+            # self.ss.append(temp)
+            # self.i += 1
         elif action == "\\assign":
             R = self.ss.pop()
             A = self.ss.pop()
@@ -165,11 +165,11 @@ class code_generator:
             self.i += 1
             self.ss.append(dest)
         elif action == "\\param":
-            self.pb[self.i] = ("ASSIGN", "#0", self.data_pointer)
+            # self.pb[self.i] = ("ASSIGN", "#0", self.data_pointer)
             row = self.get_symbol_table_row(input)
             row2 = self.get_symbol_table_row(self.current_func)
             row2['num'] += 1
-            self.i += 1
+            # self.i += 1
         elif action == "\\return":
 
             '''return value is at the top of the stack.
@@ -215,27 +215,24 @@ class code_generator:
             self.pb[address] = ("JPF", address2, self.i)
 
         elif action == "\\func_def":
-            self.pb[self.i] = ("ASSIGN", "#0", self.data_pointer)
+            # self.pb[self.i] = ("ASSIGN", "#0", self.data_pointer)
             row = {'lexeme': input, 'address': self.data_pointer, 'type': 'func', 'num': 0, 'scope': self.scope}
             self.current_func = input
             self.symbol_table[len(self.symbol_table)] = row
             self.return_scope.append(row['address'])
             self.data_pointer += 4
             if input != "main":
-                self.pb[self.i + 1] = ("JP",)
-                self.pb[self.i + 2] = ("ASSIGN", "#0", self.data_pointer)  # return value.
-                self.pb[self.i + 3] = ("ASSIGN", "#0", self.data_pointer + 4)  # return address.
-                self.incomplete_funcs.append(self.i + 1)
-                self.i += 3
+                self.pb[self.i] = ("JP",)
+                self.incomplete_funcs.append(self.i)
+                self.i += 1
                 self.data_pointer += 8
             else:
                 # fill all the previous JPs
                 while (len(self.incomplete_funcs) > 0):
                     JP_address = self.incomplete_funcs.pop()
-                    self.pb[JP_address] = ("JP", self.i + 1)
+                    self.pb[JP_address] = ("JP", self.i)
                 pass
             self.scope += 1
-            self.i += 1
         elif action == "\\start_list":
             # self.ss.append(self.i)
             # self.i += 1
